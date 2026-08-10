@@ -1,0 +1,61 @@
+{
+  "providers": {
+    "deepseek": {
+      "baseURL": "https://api.deepseek.com",
+      "apiKeyEnv": "DEEPSEEK_API_KEY",
+      "defaultModel": "deepseek-chat"
+    },
+    "openai": {
+      "baseURL": "https://api.openai.com/v1",
+      "apiKeyEnv": "OPENAI_API_KEY",
+      "defaultModel": "gpt-4o-mini"
+    },
+    "kimi": {
+      "baseURL": "https://api.moonshot.cn/v1",
+      "apiKeyEnv": "MOONSHOT_API_KEY",
+      "defaultModel": "moonshot-v1-8k"
+    },
+    "qwen": {
+      "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "apiKeyEnv": "DASHSCOPE_API_KEY",
+      "defaultModel": "qwen-plus"
+    },
+    "qwen-vl": {
+      "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "apiKeyEnv": "DASHSCOPE_API_KEY",
+      "defaultModel": "qwen-vl-max"
+    }
+  },
+  "roles": {
+    "scanner":  { "provider": "deepseek", "model": "deepseek-chat" },
+    "outliner": { "provider": "deepseek", "model": "deepseek-chat" },
+    "writer":   { "provider": "deepseek", "model": "deepseek-chat" },
+    "reviewer": { "provider": "deepseek", "model": "deepseek-reasoner" }
+  },
+  "vision": {
+    "provider": "qwen-vl",
+    "model": "qwen-vl-max",
+    "enabled": false
+  },
+  "defaults": {
+    "temperature": 0.7,
+    "maxTokens": 4096,
+    "maxProjectBytes": 200000,
+    "qualityThreshold": 80,
+    "maxFixRounds": 2,
+    "concurrency": 3,
+    "metricsWeights": {
+      "structure": 0.25,
+      "factual": 0.25,
+      "format": 0.15,
+      "density": 0.1,
+      "code": 0.1,
+      "review": 0.15
+    },
+    "costs": {
+      "deepseek-chat":     { "inputPerMillion": 2,  "outputPerMillion": 8,  "currency": "¥" },
+      "deepseek-reasoner": { "inputPerMillion": 4,  "outputPerMillion": 16, "currency": "¥" },
+      "gpt-4o-mini":       { "inputPerMillion": 1.1, "outputPerMillion": 4.4, "currency": "$" }
+    }
+  }
+}

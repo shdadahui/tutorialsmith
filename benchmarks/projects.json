@@ -1,0 +1,22 @@
+{
+  "projects": [
+    {
+      "name": "hello-cli",
+      "dir": "samples/b01-hello-cli",
+      "audience": "有 Node.js 基础的开发者",
+      "focus": "偏代码实战"
+    },
+    {
+      "name": "http-server",
+      "dir": "samples/b02-http-server",
+      "audience": "有 JavaScript 基础、想了解 HTTP 服务器的开发者",
+      "focus": "偏原理讲解"
+    },
+    {
+      "name": "config-tool",
+      "dir": "samples/b03-config-tool",
+      "audience": "有 JS 基础的后端开发者",
+      "focus": "偏代码实战"
+    }
+  ]
+}

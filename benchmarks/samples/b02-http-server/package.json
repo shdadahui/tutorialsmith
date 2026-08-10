@@ -1,0 +1,14 @@
+{
+  "name": "http-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/"
+  },
+  "description": "一个用 Node 原生 `node:http` 实现的极简 HTTP 服务器，零依赖。支持静态文件服务与一个 JSON API 端点。",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

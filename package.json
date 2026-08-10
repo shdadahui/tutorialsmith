@@ -1,0 +1,19 @@
+{
+  "name": "tutorial-agent",
+  "version": "1.0.0",
+  "description": "基于项目生成技术教程的 Agent：扫描项目 → 生成大纲 → 逐章撰写 → 质量审查，多 LLM 可分工（默认 DeepSeek）",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "web": "node src/web.js",
+    "bench": "node benchmarks/run.js",
+    "compare": "node benchmarks/compare-models.js",
+    "test": "node --test \"tests/*.test.js\""
+  },
+  "keywords": ["tutorial", "agent", "llm", "deepseek", "markdown"],
+  "license": "MIT"
+}

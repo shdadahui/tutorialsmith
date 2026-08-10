@@ -1,0 +1,18 @@
+{
+  "deepseek-chat": {
+    "provider": "deepseek",
+    "model": "deepseek-chat",
+    "note": "标准对话模型（快、便宜）"
+  },
+  "deepseek-reasoner": {
+    "provider": "deepseek",
+    "model": "deepseek-reasoner",
+    "note": "推理模型（思考更充分，慢且贵）"
+  },
+  "chat+reasoner-review": {
+    "provider": "deepseek",
+    "model": "deepseek-chat",
+    "reviewerModel": "deepseek-reasoner",
+    "note": "chat 写 + reasoner 评审（混合方案）"
+  }
+}

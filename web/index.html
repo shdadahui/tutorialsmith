@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tutorial-agent · Web 界面</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --border:#e3e6ea; --text:#1f2329; --muted:#8a919c; --accent:#2563eb; --ok:#16a34a; --err:#dc2626; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); padding: 24px; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: 380px 1fr; gap: 16px; align-items: start; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .card h2 { font-size: 14px; margin-bottom: 12px; color: var(--muted); font-weight: 600; }
+  label { display: block; font-size: 13px; margin: 10px 0 4px; color: var(--text); }
+  input[type=text], select, input[type=number] { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: #fff; }
+  .checks { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .checks label { display: flex; align-items: center; gap: 5px; margin: 0; font-size: 12px; cursor: pointer; }
+  button { margin-top: 14px; width: 100%; padding: 10px; border: none; border-radius: 6px; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .jobs { margin-top: 16px; }
+  .job { display: flex; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; font-size: 13px; }
+  .job:hover { border-color: var(--accent); }
+  .status { font-weight: 600; }
+  .st-running { color: var(--accent); } .st-done { color: var(--ok); } .st-failed { color: var(--err); }
+  pre { background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.5; overflow: auto; max-height: 420px; white-space: pre-wrap; word-break: break-all; }
+  .log-wrap { margin-bottom: 12px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+  .tabs button { width: auto; padding: 6px 12px; margin: 0; background: var(--bg); color: var(--text); border: 1px solid var(--border); font-size: 12px; font-weight: 500; border-radius: 6px; }
+  .tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .file-list a { display: block; padding: 6px 0; font-size: 13px; color: var(--accent); text-decoration: none; border-bottom: 1px dashed var(--border); }
+  .file-list a:hover { text-decoration: underline; }
+  .preview-btn { margin-top: 10px; font-size: 13px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 20px 0; text-align: center; }
+  .badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:11px; background:#eef2ff; color:#3730a3; margin-left:6px; }
+</style>
+</head>
+<body>
+  <h1>tutorial-agent <span class="badge">Web 界面</span></h1>
+  <div class="sub">基于项目自动生成技术教程 · 提交任务 → 实时日志 → 查看结果 / 网页预览</div>
+
+  <div class="grid">
+    <!-- 左：表单 + 任务列表 -->
+    <div>
+      <div class="card">
+        <h2>新建生成任务</h2>
+        <label>项目目录（绝对路径，或选下面的样例）</label>
+        <input type="text" id="projectPath" placeholder="例如：D:/projects/my-app" value="demo">
+        <label>样例项目（快捷填入）</label>
+        <select id="sampleSelect"><option value="">-- 选择样例 --</option></select>
+        <label>目标受众（可选）</label>
+        <input type="text" id="audience" placeholder="例如：有 Node.js 基础的开发者">
+        <label>教程侧重（可选）</label>
+        <input type="text" id="focus" placeholder="例如：偏代码实战">
+        <label>补充项目简介（可选）</label>
+        <input type="text" id="intro" placeholder="一句话介绍项目">
+        <label>质量阈值（默认 80，低于自动修复）</label>
+        <input type="number" id="threshold" placeholder="80" min="0" max="100">
+        <div class="checks">
+          <label><input type="checkbox" id="optVerify"> 真实验证 --verify</label>
+          <label><input type="checkbox" id="optSkipReview"> 跳过审查</label>
+          <label><input type="checkbox" id="optResume"> 断点续写</label>
+          <label><input type="checkbox" id="optNoFix"> 关闭自动修复</label>
+        </div>
+        <button id="generateBtn">开始生成</button>
+      </div>
+
+      <div class="card jobs">
+        <h2>任务列表</h2>
+        <div id="jobList"><div class="empty">暂无任务</div></div>
+      </div>
+    </div>
+
+    <!-- 右：详情 -->
+    <div class="card">
+      <h2 id="detailTitle">任务详情</h2>
+      <div id="detail"><div class="empty">选择一个任务查看进度与结果</div></div>
+    </div>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let currentJob = null;
+let pollTimer = null;
+
+// 样例项目列表
+fetch("/api/projects").then(r => r.json()).then(({ samples, demo }) => {
+  const sel = $("sampleSelect");
+  [demo, ...samples].forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener("change", () => { if (sel.value) $("projectPath").value = sel.value; });
+});
+
+async function refreshJobs() {
+  const { jobs } = await (await fetch("/api/jobs")).json();
+  const list = $("jobList");
+  if (!jobs.length) { list.innerHTML = '<div class="empty">暂无任务</div>'; return; }
+  list.innerHTML = "";
+  jobs.slice().reverse().forEach(j => {
+    const el = document.createElement("div");
+    el.className = "job";
+    el.innerHTML = `<span>${j.id} <span class="status st-${j.status}">${statusText(j.status)}</span></span><span style="color:var(--muted)">${new Date(j.createdAt).toLocaleTimeString()}</span>`;
+    el.onclick = () => selectJob(j.id);
+    list.appendChild(el);
+  });
+}
+
+function statusText(s) { return s === "running" ? "运行中" : s === "done" ? "完成" : "失败"; }
+
+async function selectJob(id) {
+  currentJob = id;
+  clearInterval(pollTimer);
+  $("detailTitle").textContent = `任务详情：${id}`;
+  $("detail").innerHTML = '<div class="empty">加载中...</div>';
+  await loadDetail();
+  pollTimer = setInterval(loadDetail, 2000);
+}
+
+async function loadDetail() {
+  if (!currentJob) return;
+  const job = await (await fetch(`/api/jobs/${currentJob}`)).json();
+  const detail = $("detail");
+  const html = `
+    <div class="log-wrap"><h2 style="font-size:13px;color:var(--muted)">运行日志（状态：<span class="status st-${job.status}">${statusText(job.status)}</span>）</h2>
+    <pre id="logBox">${escapeHtml(job.log.join("\n")) || "等待日志..."}</pre></div>
+    <div class="tabs"><button class="active" data-tab="log">日志</button><button data-tab="files">结果文件</button></div>
+    <div id="tab-log">（见上方日志）</div>
+    <div id="tab-files" style="display:none"></div>
+    <button class="preview-btn" id="previewBtn" style="display:none">📖 在浏览器中预览（mdbrowse）</button>
+    <div id="fileContent" style="display:none; margin-top:12px"><h2 style="font-size:13px;color:var(--muted)" id="fileTitle"></h2><pre id="fileBox"></pre></div>`;
+  detail.innerHTML = html;
+
+  const logBox = $("logBox");
+  logBox.scrollTop = logBox.scrollHeight;
+
+  // tabs
+  detail.querySelectorAll(".tabs button").forEach(btn => {
+    btn.onclick = () => {
+      detail.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const tab = btn.dataset.tab;
+      $("tab-log").style.display = tab === "log" ? "" : "none";
+      $("tab-files").style.display = tab === "files" ? "" : "none";
+      if (tab === "files") loadFiles();
+    };
+  });
+
+  if (job.status === "done") {
+    clearInterval(pollTimer);
+    $("previewBtn").style.display = "";
+    $("previewBtn").onclick = async () => {
+      const r = await (await fetch(`/api/preview/${job.id}`, { method: "POST" })).json();
+      if (r.url) window.open(r.url, "_blank");
+      else alert(r.error || "预览启动失败");
+    };
+    loadFiles();
+  } else if (job.status === "failed") {
+    clearInterval(pollTimer);
+  }
+}
+
+async function loadFiles() {
+  const { files } = await (await fetch(`/api/files/${currentJob}`)).json();
+  const box = $("tab-files");
+  if (!files.length) { box.innerHTML = '<div class="empty">暂无文件</div>'; return; }
+  box.innerHTML = '<div class="file-list"></div>';
+  const list = box.querySelector(".file-list");
+  files.forEach(f => {
+    const a = document.createElement("a");
+    a.href = "#";
+    a.textContent = `${f.name}（${(f.size / 1024).toFixed(1)} KB）`;
+    a.onclick = (e) => { e.preventDefault(); viewFile(f.name); };
+    list.appendChild(a);
+  });
+}
+
+async function viewFile(name) {
+  const content = await (await fetch(`/api/file/${currentJob}?path=${encodeURIComponent(name)}`)).text();
+  $("fileContent").style.display = "";
+  $("fileTitle").textContent = name;
+  $("fileBox").textContent = content;
+}
+
+function escapeHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+$("generateBtn").onclick = async () => {
+  const body = {
+    projectPath: $("projectPath").value.trim(),
+    audience: $("audience").value.trim() || undefined,
+    focus: $("focus").value.trim() || undefined,
+    intro: $("intro").value.trim() || undefined,
+    threshold: $("threshold").value ? Number($("threshold").value) : undefined,
+    verify: $("optVerify").checked,
+    skipReview: $("optSkipReview").checked,
+    resume: $("optResume").checked,
+    noFix: $("optNoFix").checked,
+  };
+  if (!body.projectPath) { alert("请填写项目目录"); return; }
+  const btn = $("generateBtn");
+  btn.disabled = true; btn.textContent = "提交中...";
+  try {
+    const r = await (await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).json();
+    if (r.error) throw new Error(r.error);
+    $("projectPath").value = "";
+    refreshJobs();
+    selectJob(r.id);
+  } catch (err) {
+    alert("提交失败：" + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "开始生成";
+  }
+};
+
+refreshJobs();
+setInterval(refreshJobs, 5000);
+</script>
+</body>
+</html>

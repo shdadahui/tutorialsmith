@@ -1,0 +1,14 @@
+{
+  "name": "config-tool",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/cli.js",
+    "test": "node --test test/"
+  },
+  "description": "一个 JSON 配置文件校验 CLI，零依赖。定义字段规则（类型/必填/范围），对任意 JSON 文件做校验并输出友好报告。",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

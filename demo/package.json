@@ -1,0 +1,38 @@
+{
+  "name": "mini-notes",
+  "version": "1.0.1",
+  "description": "一个极简的本地笔记命令行工具：支持添加、列出、删除笔记，数据以 JSON 文件持久化",
+  "type": "module",
+  "bin": {
+    "mini-notes": "src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/"
+  },
+  "keywords": [
+    "notes",
+    "cli",
+    "markdown"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "author": "",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "fuse.js": "^7.5.0",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6"
+  }
+}

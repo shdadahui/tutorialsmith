@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 使用 Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: 语法检查（全部源码）
+        run: |
+          for f in src/*.js; do node --check "$f"; done
+
+      - name: 运行单元测试
+        run: npm test
+
+      - name: CLI 帮助冒烟测试
+        run: node src/cli.js --help | head -5
