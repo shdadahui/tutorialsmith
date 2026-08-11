@@ -16,7 +16,7 @@
 import { exec } from "node:child_process";
 
 /** 危险命令特征：命中即跳过（不执行、不计分） */
-const DANGEROUS_PATTERNS = [
+export const DANGEROUS_PATTERNS = [
   /\brm\b/i, /\brmdir\b/i, /\bsudo\b/i, /\bmkfs/i, /\bdd\b/i, /\bformat/i,
   /\bchmod\b/i, /\bchown\b/i, /\bshutdown/i, /\breboot/i, /\bkill\b/i,
   /\bmv\s+\/\b/i, /\b>\/dev\/sd/i, /\bwget\b.*\|\s*(ba)?sh/i,
@@ -40,6 +40,7 @@ const OUTPUT_PATTERNS = [
 const CONTROL_FLOW_PATTERNS = [
   /^(for|while|until|if|else|elif|then|fi|done|esac|case|function)\b/i,
   /^\}\s*$/, /^\{\s*$/, /^[a-zA-Z_]+\(\)\s*\{\s*$/,
+  /^(local|complete|alias|trap|readonly)\b/i, // bash 脚本内部语句，不是独立命令
 ];
 
 /** JS/其他语言语句混入 bash 块（教程常把代码块写成 bash）：跳过 */
@@ -84,8 +85,8 @@ export function classifyCommand(cmd) {
   return "project"; // 默认按项目内命令处理（保守）
 }
 
-/** 单条命令执行（Promise 化，带超时） */
-function runCommand(command, cwd, timeoutMs = 30_000) {
+/** 单条命令执行（Promise 化，带超时）——复现阶段（src/reproduce/）也复用 */
+export function runCommand(command, cwd, timeoutMs = 30_000) {
   return new Promise((resolve) => {
     exec(command, { cwd, timeout: timeoutMs, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
       (error, stdout, stderr) => {

@@ -27,7 +27,8 @@ export const WRITING_STYLE = `你是一位兼具一线工程经验与教学能�
    - 长代码分块讲解，先讲整体思路再贴代码，避免大段无解释代码
    - 标注代码对应的文件路径，方便读者对应修改
 3. 命令真实性（最高优先级）：
-   - **命令行指令必须基于项目实际情况**：只写项目里真实存在的脚本、真实可用的命令；严禁凭空编造命令或运行方式
+   - **若用户消息中提供了「已验证命令清单」：本章所有命令行指令必须逐字来自该清单**，禁止使用清单之外的任何命令（包括失败清单中列出的命令）
+   - 命令的参数用法以清单中的成功示例为准；若需不同参数，基于清单命令调整并确保语义正确
    - 命令行必须在本机真实可执行：写命令前先确认解释器/工具是否可用（例如 python3 在多数 Windows 环境不可用，应写 python 或说明前提）
    - 不确定能否运行的命令，必须注明"需在对应环境下验证"，或给出替代命令
    - 系统级命令（nvm/brew/apt 等）要标注"需要 XX 环境/权限"
@@ -248,8 +249,8 @@ ${focus ? `教程侧重：${focus}` : ""}
 请设计 7 章教程大纲，只输出合法 JSON。`;
 }
 
-/** Writer 的用户消息 */
-export function buildWriterUser({ projectSummary, chapter, chapterIndex, reviewerIssues }) {
+/** Writer 的用户消息。reproduction 为写作前复现报告（已验证命令清单），提供时命令必须从中选取。 */
+export function buildWriterUser({ projectSummary, chapter, chapterIndex, reviewerIssues, reproduction }) {
   const chapterSpec = chapter.sections.map((s) => `- ${s}`).join("\n");
   const parts = [
     `## 本章大纲（第 ${chapterIndex} 章）`,
@@ -261,6 +262,18 @@ export function buildWriterUser({ projectSummary, chapter, chapterIndex, reviewe
     `## 项目概况`,
     JSON.stringify(projectSummary, null, 2),
   ];
+  if (reproduction) {
+    const ok = reproduction.okCommands || [];
+    const failed = reproduction.failed || [];
+    parts.push("",
+      `## 已验证命令清单（最高优先级：本章出现的所有命令行指令必须来自此清单，禁止使用清单之外的命令）`,
+      ok.length ? ok.map((c) => `- ${c}`).join("\n") : "（无已验证命令：本章如需命令，请使用最通用且必然可用的写法，并显著标注'需在对应环境验证'）",
+      "",
+      `## 复现中实际失败的命令（请勿在教程中使用；若必须涉及，在「踩坑记录」中说明其失败原因与替代方案）`,
+      failed.length ? failed.map((f) => `- ${f.cmd}：${(f.error || "").split("\n")[0].slice(0, 120)}`).join("\n") : "（无）",
+      reproduction.notes?.length ? `\n## 复现补充说明\n${reproduction.notes.join("\n")}` : "",
+    );
+  }
   if (reviewerIssues && reviewerIssues.length > 0) {
     parts.push("", `## 上一轮审查意见（必须逐条落实）`, reviewerIssues.map((i, idx) => `${idx + 1}. ${i}`).join("\n"));
   }

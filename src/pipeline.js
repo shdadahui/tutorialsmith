@@ -20,6 +20,7 @@ import { writeAllChapters, writeChapter, CHAPTER_FILE } from "./writer.js";
 import { reviewAllChapters } from "./reviewer.js";
 import { computeMetrics } from "./metrics.js";
 import { verifyChapters } from "./verifier.js";
+import { runReproduce } from "./reproduce/engine.js";
 import { writeReport } from "./report.js";
 import { resolveRole, resolveVision } from "./config.js";
 import { resetUsage, getUsageSummary } from "./usage.js";
@@ -168,7 +169,7 @@ async function appendPitfallRecord({ config, outputDir, verifyResult, projectSum
 export async function runPipeline({
   config, projectPath, outputDir, userOptions,
   resume = false, skipReview = false, verify = false,
-  template = null, baseline = null, noFix = false, threshold = null,
+  template = null, baseline = null, noFix = false, threshold = null, noReproduce = false,
 }) {
   // 每个 run 独立统计 token/成本（基准测试逐项目调用时保证互不污染）
   resetUsage();
@@ -239,11 +240,28 @@ export async function runPipeline({
     });
   }
 
+  // 写作前复现（v4）：先把项目真实跑起来，产出"已验证命令清单"注入 writer
+  let reproduction = null;
+  if (resume && metaLoaded) {
+    try {
+      const m = JSON.parse(await readFile(metaPath, "utf8"));
+      if (m.reproduction) reproduction = m.reproduction;
+    } catch { /* meta 里没有复现记录 */ }
+  }
+  if (!reproduction && !noReproduce) {
+    try {
+      reproduction = (await runReproduce({ config, projectPath, maxSteps: config.defaults.reproduceMaxSteps ?? 12 })).reproduction;
+    } catch (err) {
+      console.warn(`  ⚠ 写作前复现失败（继续生成，但命令未经预验证）: ${err.message}`);
+    }
+  }
+
   // 持久化中间产物（断点续写 + 基准测试复用）
   await mkdir(outputDir, { recursive: true });
   await writeFile(metaPath, JSON.stringify({
     projectSummary,
     outline,
+    reproduction,
     generatedAt: new Date().toISOString(),
   }, null, 2), "utf8");
 
@@ -255,6 +273,7 @@ export async function runPipeline({
     outline,
     outputDir,
     resume,
+    reproduction,
     concurrency: config.defaults.concurrency,
   });
 
@@ -279,6 +298,7 @@ export async function runPipeline({
         outputDir,
         resume: false,
         reviewMap,
+        reproduction,
         concurrency: config.defaults.concurrency,
       });
       console.log(`  ✓ 修订完成`);
@@ -360,6 +380,7 @@ export async function runPipeline({
       const { content } = await writeChapter({
         roleConfig: writerRole, projectSummary, chapter, chapterIndex: idx,
         reviewerIssues: issues.map((i) => `【本地量化问题】${i}`),
+        reproduction,
       });
       await writeFile(join(outputDir, CHAPTER_FILE(idx)), content, "utf8");
     }

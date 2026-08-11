@@ -39,7 +39,10 @@ test("ID 自动递增", async () => {
   await addNote("a");
   await addNote("b");
   const notes = await listNotes();
-  assert.deepEqual(notes.map((n) => n.id), [1, 2]);
+  assert.deepEqual(
+    notes.map((n) => n.id),
+    [1, 2],
+  );
 });
 
 test("按标签过滤", async () => {

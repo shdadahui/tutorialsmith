@@ -31,7 +31,8 @@
     "outliner": { "provider": "deepseek", "model": "deepseek-chat" },
     "writer":   { "provider": "deepseek", "model": "deepseek-chat" },
     "reviewer": { "provider": "deepseek", "model": "deepseek-reasoner" },
-    "react":    { "provider": "deepseek", "model": "deepseek-chat" }
+    "react":    { "provider": "deepseek", "model": "deepseek-chat" },
+    "reproduce":{ "provider": "deepseek", "model": "deepseek-chat" }
   },
   "vision": {
     "provider": "qwen-vl",
@@ -45,6 +46,7 @@
     "qualityThreshold": 80,
     "maxFixRounds": 2,
     "concurrency": 3,
+    "reproduceMaxSteps": 16,
     "metricsWeights": {
       "structure": 0.25,
       "factual": 0.25,

@@ -55,19 +55,11 @@ function serializeHistory(history) {
 }
 
 /**
- * 运行 ReAct 教程生成（v2）。
- * @param {object} deps { config, projectPath, outputDir, userOptions, maxSteps }
- * @returns {Promise<{agent: "react", steps, finished, metrics, usage, outputDir}>}
+ * 通用 Agent 循环（ReAct 式）：模型每步输出 JSON 动作，引擎执行工具并回传 Observation。
+ * 被 v2 教程生成（finalize 收尾）与复现阶段（finish 收尾）共用。
  */
-export async function runReactAgent({ config, projectPath, outputDir, userOptions = {}, maxSteps = 20 }) {
-  resetUsage();
-  const reactRole = resolveRole(config, "react");
-  const system = buildReactSys(config);
-  const tools = createTools({ config, projectPath, outputDir, userOptions });
-
-  console.log(`\n════════ ReAct 教程生成（v2，模型自主决策）════════`);
-  console.log(`  决策模型: ${reactRole.model} | 步数上限: ${maxSteps}`);
-
+export async function runAgentLoop({ system, roleConfig, tools, maxSteps = 20, finishActionName = "finalize", banner = "" }) {
+  if (banner) console.log(banner);
   const history = []; // {role: "assistant"|"obs", step, text}
   let finished = false;
   let step = 0;
@@ -76,7 +68,7 @@ export async function runReactAgent({ config, projectPath, outputDir, userOption
     const user = serializeHistory(history);
     let reply = "";
     try {
-      reply = await chat({ roleConfig: reactRole, system, user, maxTokens: 1024 });
+      reply = await chat({ roleConfig, system, user, maxTokens: 1024 });
     } catch (err) {
       console.error(`  ✗ 第 ${step} 步调用失败: ${err.message}`);
       break;
@@ -93,23 +85,46 @@ export async function runReactAgent({ config, projectPath, outputDir, userOption
     console.log(`  [${step}] ${action.action}(${JSON.stringify(action.args || {})})`);
     history.push({ role: "assistant", step, text: `{"action":"${action.action}","args":${JSON.stringify(action.args || {})}}` });
 
-    if (action.action === "finalize") {
-      const obs = await dispatchTool(tools, action);
+    const obs = await dispatchTool(tools, action);
+    history.push({ role: "obs", step, text: truncate(obs, 700) });
+
+    if (action.action === finishActionName) {
       console.log(`      → ${truncate(obs, 200)}`);
-      history.push({ role: "obs", step, text: obs });
       finished = true;
       break;
     }
-
-    const obs = await dispatchTool(tools, action);
-    history.push({ role: "obs", step, text: truncate(obs, 700) });
   }
 
   if (!finished) {
     console.log(`\n  ⚠ 达到步数上限（${maxSteps}），强制收尾...`);
-    const obs = await dispatchTool(tools, { action: "finalize", args: {} });
+    const obs = await dispatchTool(tools, { action: finishActionName, args: {} });
     console.log(`      → ${truncate(obs, 200)}`);
   }
+
+  return { steps: step, finished };
+}
+
+/**
+ * 运行 ReAct 教程生成（v2）。
+ * @param {object} deps { config, projectPath, outputDir, userOptions, maxSteps }
+ * @returns {Promise<{agent: "react", steps, finished, metrics, usage, outputDir}>}
+ */
+export async function runReactAgent({ config, projectPath, outputDir, userOptions = {}, maxSteps = 20 }) {
+  resetUsage();
+  const reactRole = resolveRole(config, "react");
+  const system = buildReactSys(config);
+  const tools = createTools({ config, projectPath, outputDir, userOptions });
+
+  console.log(`\n════════ ReAct 教程生成（v2，模型自主决策）════════`);
+  console.log(`  决策模型: ${reactRole.model} | 步数上限: ${maxSteps}`);
+
+  const { steps, finished } = await runAgentLoop({
+    system,
+    roleConfig: reactRole,
+    tools,
+    maxSteps,
+    finishActionName: "finalize",
+  });
 
   const usage = getUsageSummary(config.defaults.costs);
   // 优先取工具状态里的 metrics；若引擎没拿到，则从磁盘 metrics.json 兜底

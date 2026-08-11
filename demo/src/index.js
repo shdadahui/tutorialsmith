@@ -48,12 +48,15 @@ async function main() {
       console.log("（暂无笔记）");
     } else {
       for (const n of notes) {
-        console.log(`#${n.id} [${n.tag || "未分类"}] ${n.text}（${new Date(n.createdAt).toLocaleString("zh-CN")}）`);
+        console.log(
+          `#${n.id} [${n.tag || "未分类"}] ${n.text}（${new Date(n.createdAt).toLocaleString("zh-CN")}）`,
+        );
       }
     }
   } else if (command === "delete") {
     const id = Number(positionals[0]);
-    if (!Number.isInteger(id) || id <= 0) throw new Error("delete 命令需要正整数 ID");
+    if (!Number.isInteger(id) || id <= 0)
+      throw new Error("delete 命令需要正整数 ID");
     await deleteNote(id);
     console.log(`已删除笔记 #${id}`);
   }

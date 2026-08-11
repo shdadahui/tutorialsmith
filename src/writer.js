@@ -23,8 +23,8 @@ export function chapterHeading(index, title) {
  * @param {object} deps { roleConfig, projectSummary, chapter, chapterIndex, reviewerIssues? }
  * @returns {Promise<{content: string, path: string}>}
  */
-export async function writeChapter({ roleConfig, projectSummary, chapter, chapterIndex, reviewerIssues }) {
-  const user = buildWriterUser({ projectSummary, chapter, chapterIndex, reviewerIssues });
+export async function writeChapter({ roleConfig, projectSummary, chapter, chapterIndex, reviewerIssues, reproduction }) {
+  const user = buildWriterUser({ projectSummary, chapter, chapterIndex, reviewerIssues, reproduction });
   const raw = await chat({ roleConfig, system: buildWriterSys(), user, maxTokens: 8192 });
 
   // 清洗：去掉模型可能误加的 ```markdown 围栏
@@ -48,7 +48,7 @@ export async function writeChapter({ roleConfig, projectSummary, chapter, chapte
  * @param {number} concurrency 并发上限（默认 3，规避限流）
  * @returns {Promise<{files: Array<{path, content}>, rewritten: number[]}>}
  */
-export async function writeAllChapters({ roleConfig, projectSummary, outline, outputDir, resume = false, reviewMap = {}, concurrency = 3 }) {
+export async function writeAllChapters({ roleConfig, projectSummary, outline, outputDir, resume = false, reviewMap = {}, concurrency = 3, reproduction }) {
   await mkdir(outputDir, { recursive: true });
   const files = [];
   const rewritten = [];
@@ -85,7 +85,7 @@ export async function writeAllChapters({ roleConfig, projectSummary, outline, ou
     while (cursor < tasks.length) {
       const t = tasks[cursor++];
       const { content } = await writeChapter({
-        roleConfig, projectSummary, chapter: t.chapter, chapterIndex: t.idx, reviewerIssues: t.reviewerIssues,
+        roleConfig, projectSummary, chapter: t.chapter, chapterIndex: t.idx, reviewerIssues: t.reviewerIssues, reproduction,
       });
       await writeFile(t.filepath, content, "utf8");
       console.log(`  ✓ 已写入: ${t.filename}（${content.length} 字符）`);
