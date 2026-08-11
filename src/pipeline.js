@@ -14,7 +14,7 @@ import { readFile, writeFile, access, mkdir } from "node:fs/promises";
 import { join, basename } from "node:path";
 import { scanProject, describeImages } from "./scanner.js";
 import { chat } from "./llm.js";
-import { SCANNER_SYS, buildScannerUser } from "./prompts.js";
+import { SCANNER_SYS, buildScannerUser, PITFALL_SYS, buildPitfallUser } from "./prompts.js";
 import { generateOutline, parseJsonLoose } from "./outliner.js";
 import { writeAllChapters, writeChapter, CHAPTER_FILE } from "./writer.js";
 import { reviewAllChapters } from "./reviewer.js";
@@ -104,6 +104,50 @@ async function readChapterFiles(outputDir, outline) {
     }
   }
   return files;
+}
+
+/**
+ * 踩坑回填（验证门控）：真实验证失败的项目内命令 → 调 writer 生成「踩坑记录」小节，
+ * 追加到第 4 章末尾，保证"遇到的实际困难点"写进教程（而非只进报告）。
+ * @returns {Promise<number>} 写入的失败命令条数（0 = 无失败或未开启验证）
+ */
+async function appendPitfallRecord({ config, outputDir, verifyResult, projectSummary, filePaths }) {
+  if (!verifyResult) return 0;
+  const failed = verifyResult.results.filter((r) => r.ok === false && !r.skipped);
+  if (!failed.length) return 0;
+
+  // 汇总失败命令（命令 + 错误摘要），按章节排序
+  const failedList = failed
+    .sort((a, b) => a.chapter - b.chapter)
+    .map((r) => `第${r.chapter}章 命令: ${r.command}\n   报错: ${(r.output || "").split("\n").slice(0, 3).join(" | ").slice(0, 240)}`)
+    .join("\n\n");
+
+  const writerRole = resolveRole(config, "writer");
+  let text = "";
+  try {
+    text = await chat({
+      roleConfig: writerRole,
+      system: PITFALL_SYS,
+      user: buildPitfallUser({ projectSummary, failedList }),
+      maxTokens: 2048,
+    });
+  } catch (err) {
+    console.warn(`  ⚠ 踩坑回填失败: ${err.message}`);
+    return 0;
+  }
+  if (!text.trim()) return 0;
+
+  // 追加到第 4 章（章节缺失则跳过）
+  const p04 = join(outputDir, CHAPTER_FILE(4));
+  try {
+    await access(p04);
+  } catch {
+    return 0;
+  }
+  const content = await readFile(p04, "utf8");
+  const section = `\n\n## 4.6 踩坑记录（真实验证实录）\n\n> 本小节由教程生成器在真实执行教程命令后自动补充：以下问题均在实际验证中真实发生。\n\n${text.trim()}\n`;
+  await writeFile(p04, content + section, "utf8");
+  return failed.length;
 }
 
 /**
@@ -360,6 +404,16 @@ export async function runPipeline({
     return m ? Number(m[1]) : null;
   }).filter(Boolean));
   const usage = getUsageSummary(config.defaults.costs);
+
+  // 踩坑回填（验证门控）：真实验证失败的命令 → 调 writer 生成踩坑记录，追加到第 4 章
+  const pitfallsWritten = await appendPitfallRecord({ config, outputDir, verifyResult, projectSummary: outline, filePaths });
+  if (pitfallsWritten > 0) {
+    console.log(`  📌 已将 ${pitfallsWritten} 条验证失败命令写入第 4 章「踩坑记录」`);
+    // 回填会改变第 4 章内容，需重读以便 index 标题正确
+    const p04 = join(outputDir, CHAPTER_FILE(4));
+    try { await access(p04); } catch { /* 章节缺失则忽略 */ }
+  }
+
   await writeIndex(outputDir, outline, chaptersWritten);
   await writeReport({ metrics, outputDir, baseline, verify: verifyResult, fixHistory, usage });
   await writeFile(join(outputDir, "metrics.json"), JSON.stringify({
