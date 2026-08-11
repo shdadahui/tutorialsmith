@@ -92,7 +92,7 @@ export async function generateOutline({ roleConfig, projectSummary, userOptions,
 
   // 最多尝试 3 次（首次 + 2 次重试）
   for (let attempt = 1; attempt <= 3 && !outline; attempt++) {
-    const raw = await chat({ roleConfig, system: sys, user });
+    const raw = await chat({ roleConfig, system: sys, user, jsonMode: true });
     lastRaw = raw;
     outline = parseJsonLoose(raw);
     if (!isValidOutline(outline)) {

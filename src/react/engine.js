@@ -10,11 +10,11 @@
  *   - 动作必须是注册工具之一，非法动作返回错误 Observation 继续
  *   - 对话历史以单轮文本拼接模拟多轮（chat() 是单轮接口）
  */
-import { chat } from "../llm.js";
+import { chat, chatMessages } from "../llm.js";
 import { parseJsonLoose } from "../outliner.js";
 import { resolveRole } from "../config.js";
 import { resetUsage, getUsageSummary } from "../usage.js";
-import { createTools, dispatchTool, TOOL_SCHEMA } from "./tools.js";
+import { createTools, dispatchTool, TOOL_SCHEMA, toOpenAITools } from "./tools.js";
 
 /** 系统提示词：角色 + 工具 schema + 协议 */
 export function buildReactSys(config) {
@@ -48,46 +48,71 @@ export function parseAction(text) {
   return null;
 }
 
-/** 序列化对话历史（单轮模拟多轮） */
-function serializeHistory(history) {
-  if (!history.length) return "（开始）";
-  return history.map((h) => (h.role === "obs" ? `Observation: ${h.text}` : `Step ${h.step}: ${h.text}`)).join("\n\n");
-}
-
 /**
- * 通用 Agent 循环（ReAct 式）：模型每步输出 JSON 动作，引擎执行工具并回传 Observation。
+ * 通用 Agent 循环（v5：原生 function calling，文本 JSON 回退）。
+ * 模型通过原生 tool_calls 调用工具（OpenAI 兼容）；无 tool_calls 时回退到文本 JSON 解析。
  * 被 v2 教程生成（finalize 收尾）与复现阶段（finish 收尾）共用。
  */
-export async function runAgentLoop({ system, roleConfig, tools, maxSteps = 20, finishActionName = "finalize", banner = "" }) {
+export async function runAgentLoop({ system, roleConfig, tools, maxSteps = 20, finishActionName = "finalize", banner = "", openAITools = null }) {
   if (banner) console.log(banner);
-  const history = []; // {role: "assistant"|"obs", step, text}
+  const messages = [{ role: "system", content: system }];
   let finished = false;
   let step = 0;
+  let textMode = false; // 降级为文本模式后保持（两种模式的消息结构不同，混用会出错）
 
   for (step = 1; step <= maxSteps; step++) {
-    const user = serializeHistory(history);
-    let reply = "";
+    let r;
     try {
-      reply = await chat({ roleConfig, system, user, maxTokens: 1024 });
+      r = await chatMessages({
+        roleConfig,
+        messages,
+        tools: openAITools && !textMode ? openAITools : undefined,
+        toolChoice: openAITools && !textMode ? "auto" : undefined,
+        maxTokens: 1024,
+      });
     } catch (err) {
       console.error(`  ✗ 第 ${step} 步调用失败: ${err.message}`);
       break;
     }
 
-    const action = parseAction(reply);
-    if (!action) {
-      history.push({ role: "assistant", step, text: truncate(reply, 300) });
-      history.push({ role: "obs", step, text: "无法解析动作：请只输出 {\"action\":\"...\",\"args\":{...}} 格式的 JSON，不要加任何其他文字。" });
-      console.log(`  [${step}] 非法动作，重试`);
+    // ── 原生 tool_calls ──
+    if (r.toolCalls?.length) {
+      messages.push(r.message); // assistant 消息（含 tool_calls）
+      for (const tc of r.toolCalls) {
+        let action = null;
+        try {
+          action = { action: tc.name, args: JSON.parse(tc.arguments || "{}") };
+        } catch { /* 参数 JSON 解析失败走下方 tool 错误消息 */ }
+        if (!action) {
+          messages.push({ role: "tool", tool_call_id: tc.id, content: "参数 JSON 解析失败，请重新调用" });
+          continue;
+        }
+        console.log(`  [${step}] ${action.action}(${JSON.stringify(action.args || {})})`);
+        const obs = await dispatchTool(tools, action);
+        messages.push({ role: "tool", tool_call_id: tc.id, content: truncate(obs, 700) });
+        if (action.action === finishActionName) {
+          console.log(`      → ${truncate(obs, 200)}`);
+          finished = true;
+          break;
+        }
+      }
+      if (finished) break;
       continue;
     }
 
+    // ── 文本回退（parseAction）──
+    textMode = true;
+    const content = r.content ?? "";
+    messages.push({ role: "assistant", content });
+    const action = parseAction(content);
+    if (!action) {
+      messages.push({ role: "user", content: "无法解析动作：请只输出 {\"action\":\"...\",\"args\":{...}} 格式的 JSON，不要加任何其他文字。" });
+      console.log(`  [${step}] 非法动作，重试`);
+      continue;
+    }
     console.log(`  [${step}] ${action.action}(${JSON.stringify(action.args || {})})`);
-    history.push({ role: "assistant", step, text: `{"action":"${action.action}","args":${JSON.stringify(action.args || {})}}` });
-
     const obs = await dispatchTool(tools, action);
-    history.push({ role: "obs", step, text: truncate(obs, 700) });
-
+    messages.push({ role: "user", content: truncate(`Observation: ${obs}`, 700) });
     if (action.action === finishActionName) {
       console.log(`      → ${truncate(obs, 200)}`);
       finished = true;
@@ -124,6 +149,7 @@ export async function runReactAgent({ config, projectPath, outputDir, userOption
     tools,
     maxSteps,
     finishActionName: "finalize",
+    openAITools: toOpenAITools(),
   });
 
   const usage = getUsageSummary(config.defaults.costs);

@@ -42,11 +42,20 @@ async function requestCompletion({ roleConfig, body, maxRetries = 3 }) {
 
       if (res.ok) {
         const data = await res.json();
-        const content = data?.choices?.[0]?.message?.content;
-        if (content == null) {
-          throw new Error(`响应缺少 choices[0].message.content: ${JSON.stringify(data).slice(0, 300)}`);
+        const message = data?.choices?.[0]?.message || {};
+        const content = message.content ?? null;
+        // 原生 function calling：解析 tool_calls
+        const toolCalls = Array.isArray(message.tool_calls)
+          ? message.tool_calls.map((tc) => ({
+              id: tc.id,
+              name: tc.function?.name,
+              arguments: tc.function?.arguments, // 字符串形式的 JSON
+            }))
+          : [];
+        if (content == null && !toolCalls.length) {
+          throw new Error(`响应缺少 content 或 tool_calls: ${JSON.stringify(data).slice(0, 300)}`);
         }
-        // 记录 token 用量（成本统计）
+        // 记录 token 用量（成本统计 + DeepSeek 上下文缓存命中统计）
         const usage = data?.usage;
         if (usage) {
           const { recordUsage } = await import("./usage.js");
@@ -54,9 +63,11 @@ async function requestCompletion({ roleConfig, body, maxRetries = 3 }) {
             model: body.model,
             promptTokens: usage.prompt_tokens,
             completionTokens: usage.completion_tokens,
+            cacheHitTokens: usage.prompt_cache_hit_tokens,
+            cacheMissTokens: usage.prompt_cache_miss_tokens,
           });
         }
-        return content;
+        return { content, toolCalls, message };
       }
 
       // 非 2xx：构造带上下文的错误信息
@@ -100,7 +111,37 @@ async function requestCompletion({ roleConfig, body, maxRetries = 3 }) {
 }
 
 /**
- * 调用一次 LLM 对话。
+ * 高级对话：多轮 messages + 原生 function calling + 结构化输出。
+ * 供 v2/v4 的 ReAct 引擎（原生工具调用）与各阶段 JSON 输出使用。
+ *
+ * @param {object} opts
+ * @param {object} opts.roleConfig  resolveRole() 的输出
+ * @param {Array}  opts.messages    OpenAI messages 数组（system/user/assistant/tool）
+ * @param {Array}  [opts.tools]     OpenAI tools 格式（[{type:"function",function:{name,description,parameters}}]）
+ * @param {string} [opts.toolChoice] "auto" | "none" | {type:"function",function:{name}}
+ * @param {boolean}[opts.jsonMode]  强制 JSON 输出（response_format: json_object）
+ * @param {number} [opts.maxTokens] 覆盖最大输出 token
+ * @param {number} [opts.maxRetries] 重试次数，默认 3
+ * @returns {Promise<{content: string|null, toolCalls: Array<{id,name,arguments}>, message: object}>}
+ */
+export async function chatMessages({ roleConfig, messages, tools, toolChoice = "auto", jsonMode = false, maxTokens, maxRetries = 3 }) {
+  const body = {
+    model: roleConfig.model,
+    messages,
+    temperature: roleConfig.temperature,
+    max_tokens: maxTokens ?? roleConfig.maxTokens,
+    stream: false,
+  };
+  if (tools?.length) {
+    body.tools = tools;
+    body.tool_choice = toolChoice;
+  }
+  if (jsonMode) body.response_format = { type: "json_object" };
+  return requestCompletion({ roleConfig, body, maxRetries });
+}
+
+/**
+ * 调用一次 LLM 对话（返回文本内容）。
  *
  * @param {object} opts
  * @param {object} opts.roleConfig  resolveRole() 的输出：{baseURL, model, apiKey, temperature, maxTokens}
@@ -108,20 +149,21 @@ async function requestCompletion({ roleConfig, body, maxRetries = 3 }) {
  * @param {string} opts.user        用户消息（任务内容）
  * @param {number} [opts.maxTokens] 覆盖该次调用的最大输出 token
  * @param {number} [opts.maxRetries] 最大重试次数，默认 3
+ * @param {boolean}[opts.jsonMode]  强制 JSON 输出（response_format: json_object）
  * @returns {Promise<string>} 模型返回的文本内容
  */
-export async function chat({ roleConfig, system, user, maxTokens, maxRetries = 3 }) {
-  const body = {
-    model: roleConfig.model,
+export async function chat({ roleConfig, system, user, maxTokens, maxRetries = 3, jsonMode = false }) {
+  const r = await chatMessages({
+    roleConfig,
     messages: [
       ...(system ? [{ role: "system", content: system }] : []),
       { role: "user", content: user },
     ],
-    temperature: roleConfig.temperature,
-    max_tokens: maxTokens ?? roleConfig.maxTokens,
-    stream: false,
-  };
-  return requestCompletion({ roleConfig, body, maxRetries });
+    jsonMode,
+    maxTokens,
+    maxRetries,
+  });
+  return r.content;
 }
 
 /**
@@ -153,5 +195,6 @@ export async function chatVision({ roleConfig, system, text, imageBase64, mimeTy
     max_tokens: roleConfig.maxTokens ?? 2048,
     stream: false,
   };
-  return requestCompletion({ roleConfig, body, maxRetries: 2 });
+  const r = await requestCompletion({ roleConfig, body, maxRetries: 2 });
+  return r.content;
 }

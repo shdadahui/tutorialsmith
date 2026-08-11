@@ -61,6 +61,9 @@ export async function writeReport({ metrics, outputDir, baseline = null, verify 
   if (usage) {
     lines.push("## 成本统计", "");
     lines.push(`累计调用 token：**${usage.totalTokens.toLocaleString()}**（输入 ${usage.totalInput.toLocaleString()} / 输出 ${usage.totalOutput.toLocaleString()}），估算成本 **${usage.totalCost}${usage.currency}**`, "");
+    if (usage.cacheRate != null) {
+      lines.push(`上下文缓存命中率：**${usage.cacheRate}%**（命中 ${usage.cacheHitTokens.toLocaleString()} / 未命中 ${usage.cacheMissTokens.toLocaleString()} token，DeepSeek 自动缓存）`, "");
+    }
     lines.push("| 模型 | 输入 token | 输出 token | 估算成本 |", "| --- | --- | --- | --- |");
     for (const [model, m] of Object.entries(usage.byModel)) {
       lines.push(`| ${model} | ${m.promptTokens.toLocaleString()} | ${m.completionTokens.toLocaleString()} | ${m.cost}${usage.currency} |`);

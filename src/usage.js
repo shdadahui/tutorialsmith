@@ -7,12 +7,14 @@
  */
 let records = [];
 
-/** 记录一次调用的用量 */
-export function recordUsage({ model, promptTokens, completionTokens }) {
+/** 记录一次调用的用量（含 DeepSeek 上下文缓存命中统计） */
+export function recordUsage({ model, promptTokens, completionTokens, cacheHitTokens = 0, cacheMissTokens = 0 }) {
   records.push({
     model,
     promptTokens: promptTokens ?? 0,
     completionTokens: completionTokens ?? 0,
+    cacheHitTokens: cacheHitTokens ?? 0,
+    cacheMissTokens: cacheMissTokens ?? 0,
   });
 }
 
@@ -29,6 +31,7 @@ export function resetUsage() {
 export function getUsageSummary(costs = {}) {
   const byModel = {};
   let totalTokens = 0, totalInput = 0, totalOutput = 0, totalCost = 0;
+  let cacheHitTokens = 0, cacheMissTokens = 0;
   let currency = "¥";
 
   for (const r of records) {
@@ -37,6 +40,8 @@ export function getUsageSummary(costs = {}) {
     m.completionTokens += r.completionTokens;
     totalInput += r.promptTokens;
     totalOutput += r.completionTokens;
+    cacheHitTokens += r.cacheHitTokens;
+    cacheMissTokens += r.cacheMissTokens;
 
     const costCfg = costs[r.model];
     if (costCfg) {
@@ -48,9 +53,11 @@ export function getUsageSummary(costs = {}) {
     }
   }
   totalTokens = totalInput + totalOutput;
+  const promptTotal = cacheHitTokens + cacheMissTokens;
+  const cacheRate = promptTotal > 0 ? Math.round((cacheHitTokens / promptTotal) * 1000) / 10 : null;
 
   for (const m of Object.values(byModel)) m.cost = Math.round(m.cost * 10000) / 10000;
   totalCost = Math.round(totalCost * 10000) / 10000;
 
-  return { byModel, totalTokens, totalInput, totalOutput, totalCost, currency };
+  return { byModel, totalTokens, totalInput, totalOutput, totalCost, currency, cacheHitTokens, cacheMissTokens, cacheRate };
 }

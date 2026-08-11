@@ -214,7 +214,7 @@ export async function runPipeline({
     let summary = null;
     const scannerRole = resolveRole(config, "scanner");
     for (let attempt = 1; attempt <= 2 && !summary; attempt++) {
-      const raw = await chat({ roleConfig: scannerRole, system: SCANNER_SYS, user: buildScannerUser(filesText) });
+      const raw = await chat({ roleConfig: scannerRole, system: SCANNER_SYS, user: buildScannerUser(filesText), jsonMode: true });
       const parsed = parseJsonLoose(raw);
       if (isValidSummary(parsed)) {
         summary = parsed;
@@ -450,6 +450,9 @@ export async function runPipeline({
       totalTokens: usage.totalTokens,
       totalCost: usage.totalCost,
       currency: usage.currency,
+      cacheHitTokens: usage.cacheHitTokens,
+      cacheMissTokens: usage.cacheMissTokens,
+      cacheRate: usage.cacheRate,
       byModel: usage.byModel,
     },
   }, null, 2), "utf8");

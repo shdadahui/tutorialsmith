@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseAction, buildReactSys } from "../src/react/engine.js";
-import { TOOL_SCHEMA } from "../src/react/tools.js";
+import { TOOL_SCHEMA, toOpenAITools } from "../src/react/tools.js";
 
 test("parseAction：纯 JSON 动作", () => {
   assert.deepEqual(parseAction('{"action":"write_chapter","args":{"index":1}}'), {
@@ -45,4 +45,15 @@ test("工具注册表：8 个工具且 finalize 存在", () => {
   assert.equal(TOOL_SCHEMA.length, 8);
   assert.ok(TOOL_SCHEMA.some((t) => t.name === "finalize"));
   assert.ok(TOOL_SCHEMA.some((t) => t.name === "compute_metrics"));
+});
+
+test("toOpenAITools：生成原生 function calling 格式", () => {
+  const tools = toOpenAITools();
+  assert.equal(tools.length, 8);
+  const write = tools.find((t) => t.function.name === "write_chapter");
+  assert.equal(write.type, "function");
+  assert.ok(write.function.parameters.properties.index);
+  assert.deepEqual(write.function.parameters.required, ["index"]);
+  const finalize = tools.find((t) => t.function.name === "finalize");
+  assert.ok(finalize.function.parameters.properties, "空参工具也有 properties");
 });

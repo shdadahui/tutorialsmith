@@ -49,3 +49,13 @@ test("buildReproduceSys：包含工具清单与硬性规则", () => {
 test("dispatchReproduceTool：未知动作报错", async () => {
   assert.match(await dispatchReproduceTool(tools, { action: "nope" }), /未知动作/);
 });
+
+test("复现工具转 OpenAI 格式：run_command 需要 cmd 参数", async () => {
+  const { toOpenAITools } = await import("../src/reproduce/tools.js");
+  const tools = toOpenAITools();
+  assert.equal(tools.length, 4);
+  const rc = tools.find((t) => t.function.name === "run_command");
+  assert.deepEqual(rc.function.parameters.required, ["cmd"]);
+  const finish = tools.find((t) => t.function.name === "finish");
+  assert.ok(finish.function.parameters.properties.notes);
+});

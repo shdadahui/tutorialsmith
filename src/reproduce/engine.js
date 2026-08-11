@@ -11,7 +11,7 @@
 import { chat } from "../llm.js";
 import { resolveRole } from "../config.js";
 import { runAgentLoop, parseAction } from "../react/engine.js";
-import { createReproduceTools, REPRODUCE_TOOLS_SCHEMA, dispatchReproduceTool } from "./tools.js";
+import { createReproduceTools, REPRODUCE_TOOLS_SCHEMA, dispatchReproduceTool, toOpenAITools } from "./tools.js";
 
 export function buildReproduceSys() {
   const toolsDesc = REPRODUCE_TOOLS_SCHEMA.map((t) => `- ${t.name}(${t.args}) — ${t.desc}`).join("\n");
@@ -55,6 +55,7 @@ export async function runReproduce({ config, projectPath, maxSteps = 12 }) {
     maxSteps,
     finishActionName: "finish",
     banner: `\n════════ 写作前复现（v4：先把项目跑起来）════════\n  决策模型: ${role.model} | 步数上限: ${maxSteps}`,
+    openAITools: toOpenAITools(),
   });
 
   const reproduction = {

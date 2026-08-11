@@ -90,11 +90,19 @@ export function createReproduceTools({ config, projectPath }) {
 }
 
 export const REPRODUCE_TOOLS_SCHEMA = [
-  { name: "list_files", args: "{}", desc: "列出项目文件清单" },
-  { name: "read_file", args: '{"path": "相对路径"}', desc: "读取项目内文件内容（防穿越，上限 200KB）" },
-  { name: "run_command", args: '{"cmd": "命令"}', desc: "在项目目录真实执行命令（危险命令自动过滤，30 秒超时）" },
-  { name: "finish", args: '{"notes": "可选：补充你发现的注意事项"}', desc: "提交复现报告（已验证命令清单+失败记录），调用后复现结束" },
+  { name: "list_files", args: "{}", desc: "列出项目文件清单", parameters: { type: "object", properties: {} } },
+  { name: "read_file", args: '{"path": "相对路径"}', desc: "读取项目内文件内容（防穿越，上限 200KB）", parameters: { type: "object", properties: { path: { type: "string", description: "项目内相对路径" } }, required: ["path"] } },
+  { name: "run_command", args: '{"cmd": "命令"}', desc: "在项目目录真实执行命令（危险命令自动过滤，30 秒超时）", parameters: { type: "object", properties: { cmd: { type: "string", description: "要执行的 shell 命令" } }, required: ["cmd"] } },
+  { name: "finish", args: '{"notes": "可选：补充你发现的注意事项"}', desc: "提交复现报告（已验证命令清单+失败记录），调用后复现结束", parameters: { type: "object", properties: { notes: { type: "string", description: "复现中发现的注意事项" } } } },
 ];
+
+/** 转 OpenAI tools 格式（原生 function calling） */
+export function toOpenAITools() {
+  return REPRODUCE_TOOLS_SCHEMA.map((t) => ({
+    type: "function",
+    function: { name: t.name, description: t.desc, parameters: t.parameters },
+  }));
+}
 
 /** 分发执行 */
 export async function dispatchReproduceTool(tools, action) {

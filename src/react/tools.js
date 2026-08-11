@@ -219,15 +219,27 @@ export function createTools({ config, projectPath, outputDir, userOptions }) {
 
 /** 工具注册表（供系统提示词生成与动作分发共用） */
 export const TOOL_SCHEMA = [
-  { name: "list_files", args: "{}", desc: "列出项目文件清单" },
-  { name: "scan_project", args: "{}", desc: "扫描项目并生成概况（先于 generate_outline 调用）" },
-  { name: "generate_outline", args: "{}", desc: "生成教程大纲（先于 write_chapter 调用）" },
-  { name: "write_chapter", args: '{"index": <数字>}', desc: "撰写/重写指定章节，如 write_chapter({\"index\":1})" },
-  { name: "review_chapter", args: '{"index": <数字>}', desc: "审查指定章节，返回均分(0-10)与问题清单" },
-  { name: "verify_tutorial", args: "{}", desc: "真实执行教程中的项目内命令，统计可运行率" },
-  { name: "compute_metrics", args: "{}", desc: "计算完整度/可信度/总分，判断是否达标" },
-  { name: "finalize", args: "{}", desc: "收尾：生成 index.md/report.md/metrics.json，调用后任务结束" },
+  { name: "list_files", args: "{}", desc: "列出项目文件清单", parameters: { type: "object", properties: {} } },
+  { name: "scan_project", args: "{}", desc: "扫描项目并生成概况（先于 generate_outline 调用）", parameters: { type: "object", properties: {} } },
+  { name: "generate_outline", args: "{}", desc: "生成教程大纲（先于 write_chapter 调用）", parameters: { type: "object", properties: {} } },
+  { name: "write_chapter", args: '{"index": <数字>}', desc: "撰写/重写指定章节，如 write_chapter({\"index\":1})", parameters: { type: "object", properties: { index: { type: "number", description: "章节序号（1-7）" } }, required: ["index"] } },
+  { name: "review_chapter", args: '{"index": <数字>}', desc: "审查指定章节，返回均分(0-10)与问题清单", parameters: { type: "object", properties: { index: { type: "number", description: "章节序号（1-7）" } }, required: ["index"] } },
+  { name: "verify_tutorial", args: "{}", desc: "真实执行教程中的项目内命令，统计可运行率", parameters: { type: "object", properties: {} } },
+  { name: "compute_metrics", args: "{}", desc: "计算完整度/可信度/总分，判断是否达标", parameters: { type: "object", properties: {} } },
+  { name: "finalize", args: "{}", desc: "收尾：生成 index.md/report.md/metrics.json，调用后任务结束", parameters: { type: "object", properties: {} } },
 ];
+
+/** 转 OpenAI tools 格式（原生 function calling） */
+export function toOpenAITools(schema = TOOL_SCHEMA) {
+  return schema.map((t) => ({
+    type: "function",
+    function: {
+      name: t.name,
+      description: t.desc,
+      parameters: t.parameters || { type: "object", properties: {} },
+    },
+  }));
+}
 
 /** 分发执行（统一截断、统一报错） */
 export async function dispatchTool(tools, action) {
