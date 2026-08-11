@@ -25,7 +25,7 @@ import { resolveRole, resolveVision } from "./config.js";
 import { resetUsage, getUsageSummary } from "./usage.js";
 
 /** 校验 scanner 输出（项目概况）结构 */
-function isValidSummary(s) {
+export function isValidSummary(s) {
   return (
     s &&
     typeof s === "object" &&
@@ -36,7 +36,7 @@ function isValidSummary(s) {
 }
 
 /** scanner 兜底：LLM 失败时，根据文件名拼一个最小概况，保证流水线不断 */
-function fallbackSummary(projectPath, filePaths) {
+export function fallbackSummary(projectPath, filePaths) {
   const name = basename(projectPath);
   const keyFiles = filePaths.slice(0, 15).map((p) => ({ path: p, purpose: "" }));
   return {
@@ -53,7 +53,7 @@ function fallbackSummary(projectPath, filePaths) {
 }
 
 /** 生成总索引 index.md（本地拼接，不消耗 LLM） */
-async function writeIndex(outputDir, outline, chaptersWritten) {
+export async function writeIndex(outputDir, outline, chaptersWritten) {
   const lines = [
     `# ${outline.project_name} 技术教程`,
     "",

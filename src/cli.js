@@ -21,6 +21,7 @@
  *   --no-fix           关闭"分数低于阈值自动修复"（默认开启）
  *   --browse           生成完成后用 mdbrowse-cli 打开网页版文档预览
  *   --port <num>       网页预览端口（默认 3000，被占用自动换）
+ *   --agent <pipeline|react> 生成范式：pipeline=确定性流水线（默认），react=ReAct 自主循环（v2）
  *   --help             查看帮助
  */
 import { parseArgs } from "node:util";
@@ -28,6 +29,7 @@ import { resolve, join } from "node:path";
 import { loadEnv } from "./env.js";
 import { loadConfig } from "./config.js";
 import { runPipeline } from "./pipeline.js";
+import { runReactAgent } from "./react/engine.js";
 import { isValidTemplate } from "./outliner.js";
 import { openBrowse } from "./browse.js";
 
@@ -51,6 +53,7 @@ const { values } = parseArgs({
     "no-fix": { type: "boolean", default: false },
     browse: { type: "boolean", default: false },
     port: { type: "string" },
+    agent: { type: "string" },
     help: { type: "boolean", default: false },
   },
   strict: false, // 容忍未知参数，便于扩展
@@ -81,6 +84,7 @@ if (values.help || !values.project) {
   --no-fix            关闭"分数低于阈值自动修复"（默认开启）
   --browse            生成完成后用 mdbrowse-cli 打开网页版文档预览
   --port <num>        网页预览端口（默认 3000，被占用自动换）
+  --agent react       用 ReAct 范式（v2，模型自主决策动作顺序）替代默认流水线
   --help              显示此帮助
 
 示例:
@@ -88,6 +92,7 @@ if (values.help || !values.project) {
   node src/cli.js --project ./demo --audience "零基础" --focus "偏代码实战" --resume
   node src/cli.js --project ./demo --verify --threshold 85 --template my-template.json
   node src/cli.js --project ./demo --output ./docs --browse --port 4000
+  node src/cli.js --project ./demo --agent react --output ./output/react-demo  # v2 ReAct
   node src/cli.js --project ./demo --resume --skip-review --browse   # 重新打开已有教程
 
 配置文件 config.json 说明:
@@ -152,19 +157,29 @@ try {
     console.log(`质量阈值覆盖: ${threshold}`);
   }
 
-  await runPipeline({
-    config,
-    projectPath,
-    outputDir,
-    userOptions: { intro: values.intro, audience: values.audience, focus: values.focus },
-    resume: values.resume,
-    skipReview: values["skip-review"],
-    verify: values.verify,
-    template,
-    baseline,
-    threshold,
-    noFix: values["no-fix"],
-  });
+  // ReAct 范式（v2）：模型自主决策工具调用顺序
+  if (values.agent === "react") {
+    await runReactAgent({
+      config,
+      projectPath,
+      outputDir,
+      userOptions: { intro: values.intro, audience: values.audience, focus: values.focus },
+    });
+  } else {
+    await runPipeline({
+      config,
+      projectPath,
+      outputDir,
+      userOptions: { intro: values.intro, audience: values.audience, focus: values.focus },
+      resume: values.resume,
+      skipReview: values["skip-review"],
+      verify: values.verify,
+      template,
+      baseline,
+      threshold,
+      noFix: values["no-fix"],
+    });
+  }
 
   // 网页版文档预览（可选）
   if (values.browse) {

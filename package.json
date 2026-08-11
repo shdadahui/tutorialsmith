@@ -12,6 +12,7 @@
     "web": "node src/web.js",
     "bench": "node benchmarks/run.js",
     "compare": "node benchmarks/compare-models.js",
+    "compare-arch": "node benchmarks/compare-arch.js",
     "test": "node --test \"tests/*.test.js\""
   },
   "keywords": ["tutorial", "agent", "llm", "deepseek", "markdown", "documentation"],

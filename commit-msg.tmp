@@ -1,0 +1,9 @@
+feat: v2 ReAct 范式（--agent react）+ 架构对比实验
+
+- src/react/: engine.js（ReAct 循环：JSON 动作解析、历史拼接、步数上限 25）
+- src/react/tools.js：8 个工具（list_files/scan/outline/write/review/verify/metrics/finalize），复用 v1 模块
+- cli.js --agent react 分支；config.json 新增 react 角色（deepseek-chat）
+- benchmarks/compare-arch.js：v1 流水线 vs v2 ReAct 对比报告
+- 6 个新单测（parseAction/工具注册表），共 24 个全绿
+
+实测（b01-hello-cli）：质量 77.3 vs 76.6（几乎持平），v2 更快更便宜（12.4min/¥1.43 vs 27.7min/¥1.75）但 26 步触顶、0 次验证调用→可信度低 8 分

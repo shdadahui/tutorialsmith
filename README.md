@@ -180,6 +180,24 @@ node benchmarks/run.js --projects hello-cli,http-server
 
 输出 `benchmarks/out/run-<时间戳>/`：每个项目的教程目录 + `results.json`（机器可读）+ `benchmark-report.md`（耗时 / 成本 / token / 完整度 / 可信度 / 质量分 + 平均值、中位数、P90 百分位）。每次运行独立目录，保留历史基准记录。这些数字可以直接写进简历。
 
+### 5c. ReAct 范式（v2，--agent react）
+
+默认是**确定性流水线**（执行顺序由代码定死）；v2 把决策权交给模型——**ReAct 自主循环**：模型每步输出一个 JSON 动作 `{"action": "...", "args": {...}}`，引擎执行工具并回传 Observation，模型据此决定下一步，直到调用 `finalize()` 收尾。
+
+```bash
+node src/cli.js --project ./demo --agent react --output ./output/react-demo
+```
+
+**工具集**（8 个，90% 复用 v1 模块）：`list_files` / `scan_project` / `generate_outline` / `write_chapter(index)` / `review_chapter(index)` / `verify_tutorial` / `compute_metrics` / `finalize`。模型可重复、可跳步、可自主决定是否审查/验证；引擎兜底**步数上限**（默认 20，耗尽强制收尾）。
+
+**架构对比实验**（同项目、同底层模块，只换编排层）：
+
+```bash
+npm run compare-arch                 # v1 流水线 vs v2 ReAct
+```
+
+输出 `benchmarks/out/compare-arch-<时间戳>/compare-arch-report.md`：耗时 / 成本 / 质量分 / 步数对比 + 结论（质量最高 / 成本最低 / 性价比）+ 差异说明。这是简历上的深度话题：**ReAct 的灵活性 vs 流水线的可控性**，用数据说话。
+
 ### 5c. 单元测试 + CI
 
 ```bash
@@ -465,6 +483,7 @@ tutorial-agent/
 │   ├── models.json       # 多模型对比的模型配置
 │   ├── run.js            # 基准测试运行器（标准评测模式 + 百分位报告）
 │   ├── compare-models.js # 多模型对比实验（质量/成本/耗时）
+│   ├── compare-arch.js   # 架构对比实验（v1 流水线 vs v2 ReAct）
 │   ├── samples/          # 3 个微型样例项目（hello-cli / http-server / config-tool）
 │   └── out/              # 运行后生成 run-<ts>/ 与 compare-<ts>/ 报告
 ├── tests/                # 单元测试（node:test，18 个用例）
@@ -488,5 +507,8 @@ tutorial-agent/
     ├── usage.js          # token 用量与成本统计
     ├── browse.js         # 网页版文档预览（--browse，拉起 mdbrowse-cli）
     ├── web.js            # Web 界面服务器（任务队列 + 日志流 + 文件服务）
+    ├── react/            # v2 ReAct 范式（--agent react）
+    │   ├── engine.js     # ReAct 循环：动作解析、历史拼接、步数上限
+    │   └── tools.js      # 8 个工具（复用 v1 模块，Observation 截断防膨胀）
     └── pipeline.js       # 五阶段流水线编排 + 阈值修复闭环 + meta.json 持久化
 ```

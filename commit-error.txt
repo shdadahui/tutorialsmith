@@ -1,0 +1,10 @@
+﻿git : fatal: could not open '.git/COMMIT_EDITMSG': Permission denied
+所在位置 行:439 字符: 70
++ ... ypto\Aiagent\tutorialsmith'; git commit -m "test commit" 2>&1 | Out-F ...
++                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (fatal: could no...rmission denied 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Archive
+LAPTOP-8H408E5D\於白宁

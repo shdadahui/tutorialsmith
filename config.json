@@ -30,7 +30,8 @@
     "scanner":  { "provider": "deepseek", "model": "deepseek-chat" },
     "outliner": { "provider": "deepseek", "model": "deepseek-chat" },
     "writer":   { "provider": "deepseek", "model": "deepseek-chat" },
-    "reviewer": { "provider": "deepseek", "model": "deepseek-reasoner" }
+    "reviewer": { "provider": "deepseek", "model": "deepseek-reasoner" },
+    "react":    { "provider": "deepseek", "model": "deepseek-chat" }
   },
   "vision": {
     "provider": "qwen-vl",
