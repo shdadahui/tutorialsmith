@@ -1,5 +1,11 @@
 # TutorialSmith（教程匠）— 基于项目自动生成技术教程的 Agent
 
+[![CI](https://github.com/shdadahui/tutorialsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/shdadahui/tutorialsmith/actions)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/shdadahui/tutorialsmith)](https://github.com/shdadahui/tutorialsmith/releases)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](package.json)
+[![npm](https://img.shields.io/npm/v/tutorialsmith)](https://www.npmjs.com/package/tutorialsmith)
+
 一个 **Node.js 命令行工具**：给定一个项目目录，自动产出一份体系完整的技术教程（Markdown，7 章结构），覆盖基础概念、底层原理、环境搭建、分步开发、调试排错、最佳实践与进阶延伸。
 
 核心能力：
@@ -60,6 +66,19 @@
 ---
 
 ## 二、快速开始
+
+### 0. 免克隆直接使用（已发布到 npm）
+
+```bash
+# 方式一：全局安装
+npm i -g tutorialsmith
+tutorialsmith --project ./你的项目 --output ./docs
+
+# 方式二：免安装（npx 自动下载）
+npx tutorialsmith --project ./你的项目 --output ./docs
+```
+
+> 从源码跑：`git clone` 后 `node src/cli.js --project <目录> --output ./output/xxx`
 
 ### 1. 准备环境
 

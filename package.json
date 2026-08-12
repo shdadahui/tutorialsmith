@@ -1,9 +1,20 @@
 {
   "name": "tutorialsmith",
   "version": "1.0.0",
-  "description": "教程匠（TutorialSmith）：基于项目生成技术教程的 Agent。扫描项目 → 生成大纲 → 逐章撰写 → 质量审查，多 LLM 可分工（默认 DeepSeek），零依赖",
+  "description": "教程匠（TutorialSmith）：基于项目生成技术教程的 Agent。扫描项目 → 写作前复现 → 生成大纲 → 逐章撰写 → 质量审查，多 LLM 可分工（默认 DeepSeek），零依赖",
   "type": "module",
-  "private": true,
+  "bin": {
+    "tutorialsmith": "src/cli.js"
+  },
+  "files": [
+    "src/",
+    "templates/",
+    "config.json",
+    ".env.example",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "engines": {
     "node": ">=18"
   },
@@ -13,8 +24,18 @@
     "bench": "node benchmarks/run.js",
     "compare": "node benchmarks/compare-models.js",
     "compare-arch": "node benchmarks/compare-arch.js",
-    "test": "node --test \"tests/*.test.js\""
+    "test": "node --test \"tests/*.test.js\"",
+    "prepublishOnly": "npm test",
+    "pack:check": "npm pack --dry-run"
   },
-  "keywords": ["tutorial", "agent", "llm", "deepseek", "markdown", "documentation"],
-  "license": "MIT"
+  "keywords": ["tutorial", "agent", "llm", "deepseek", "markdown", "documentation", "cli"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shdadahui/tutorialsmith.git"
+  },
+  "homepage": "https://github.com/shdadahui/tutorialsmith#readme",
+  "bugs": {
+    "url": "https://github.com/shdadahui/tutorialsmith/issues"
+  }
 }
