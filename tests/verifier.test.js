@@ -33,3 +33,31 @@ test("命令分类：默认保守归为项目内命令", () => {
   assert.equal(classifyCommand("node src/index.js"), "project");
   assert.equal(classifyCommand("npm run dev"), "project");
 });
+
+test("createSandbox：复制项目并排除 node_modules/.git", async () => {
+  const { createSandbox, cleanupSandbox } = await import("../src/verifier.js");
+  const { mkdtemp, mkdir, writeFile, readdir } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const src = await mkdtemp(join(tmpdir(), "ts-sandbox-src-"));
+  await mkdir(join(src, "node_modules"));
+  await mkdir(join(src, ".git"));
+  await writeFile(join(src, "a.txt"), "hello");
+  await writeFile(join(src, "node_modules", "x.js"), "xx");
+  await writeFile(join(src, ".git", "HEAD"), "ref");
+
+  const sandbox = await createSandbox(src);
+  const copied = await readdir(sandbox);
+  assert.ok(copied.includes("a.txt"), "普通文件已复制");
+  assert.ok(!copied.includes("node_modules"), "node_modules 已排除");
+  assert.ok(!copied.includes(".git"), ".git 已排除");
+  assert.equal((await readdir(join(sandbox))).length, 1);
+  await cleanupSandbox(sandbox);
+  await cleanupSandbox(src);
+});
+
+test("cleanupSandbox：删除不存在的路径不报错", async () => {
+  const { cleanupSandbox } = await import("../src/verifier.js");
+  await cleanupSandbox("Z:/definitely-not-exist-tutorialsmith-sandbox-xyz");
+  assert.ok(true);
+});

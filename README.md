@@ -508,7 +508,35 @@ tutorial-agent/
     ├── browse.js         # 网页版文档预览（--browse，拉起 mdbrowse-cli）
     ├── web.js            # Web 界面服务器（任务队列 + 日志流 + 文件服务）
     ├── react/            # v2 ReAct 范式（--agent react）
-    │   ├── engine.js     # ReAct 循环：动作解析、历史拼接、步数上限
+    │   ├── engine.js     # 通用 Agent 循环：原生 function calling + 文本 JSON 回退
     │   └── tools.js      # 8 个工具（复用 v1 模块，Observation 截断防膨胀）
+    ├── reproduce/        # v4 写作前复现（先把项目跑起来）
+    │   ├── engine.js     # 复现 Agent（run_command 真实执行）
+    │   └── tools.js      # 4 个工具（read_file/run_command 等）
     └── pipeline.js       # 五阶段流水线编排 + 阈值修复闭环 + meta.json 持久化
 ```
+
+## 九、路线图（Roadmap）
+
+> 已完成的版本演进：v1 确定性流水线 → v2 ReAct 自主循环 → v3 验证门控（踩坑回填）→ v4 写作前复现（命令白名单）→ v5 工程化（原生 function calling / 结构化输出 / 上下文缓存，实测可运行率 86.7%、质量 S 级、缓存命中 79.8%）。
+
+### P1（下一个版本 v6，按序推进）
+
+| # | 特性 | 目标 | 关键设计 | 验收标准 | 简历价值 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | **代码沙箱**（--verify 隔离执行）✅ v6.1 | `--verify` 不再污染目标项目 | 复现+验证在临时副本执行（排除 node_modules/.git 等），跑完清理；清理失败仅告警不阻塞 | 验证后项目目录 `git status` 零改动，可运行率数据不变 | 工程安全硬实力 |
+| 2 | **SSE 流式输出** | Web 界面实时看到章节逐字生成 | web.js 用 Server-Sent Events 推送 writer 进度 | 浏览器实时流式渲染，无轮询 | 现代 Web 技术栈 |
+| 3 | **模型路由** | 同质量下成本再降 | scanner/outliner/复现用便宜模型；审查/难题失败自动升级 reasoner | 对比实测成本降幅 + 质量分不降 | 成本工程量化 |
+| 4 | **RAG 素材检索** | 突破 200KB 素材上限，大项目可用 | 大项目启用 embedding 索引，writer 每章只检索相关片段 | 300KB+ 项目也能高质量生成 | 检索增强生成实战 |
+
+### P2（按需）
+
+- **跨章一致性检查**：修复第 3 章与第 6 章说法矛盾（一次 LLM pass，零 LLM 权重可复用 metrics）
+- **教程配图生成**：架构图/流程图自动转 mermaid/SVG，提升可读性
+- **Prompt Injection 防御**：项目 README 可能含恶意指令，素材中立化（5 分钟可加，安全红线）
+- **参数级复现**：复现时把白名单命令的参数组合也实测一遍，消灭"list --search x"这类参数级错误
+
+### 推进方式
+
+- 每项独立成版本（v6.1 沙箱 → v6.2 SSE → ……），完成即推送 GitHub + 更新本表
+- 每项都跑 demo 实测，用量化数据（可运行率/成本/缓存命中率）验收后收尾

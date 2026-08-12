@@ -7,13 +7,53 @@
  *   执行失败的命令及其真实报错会记入问题清单，供修复循环改进教程。
  *
  * 安全护栏（务必理解后再改动）：
- *   1. 默认就地执行，但过滤危险命令（rm -rf / sudo / 磁盘写入等）
+ *   1. v6.1 起默认在「沙箱副本」中执行（createSandbox），目标项目零污染；
+ *      过滤危险命令（rm -rf / sudo / 磁盘写入等）
  *   2. 每条命令超时 30s，防止死循环/挂起
  *   3. 环境设置类命令（export/cd 开头）跳过不执行，不计分
  *   4. 只有显式传 --verify 才会启用本模块
- *   5. 执行可能产生副作用（如写入数据文件），报告会注明建议人工复核
+ *   5. 报告会注明执行产生副作用的可能（即使已沙箱化）
  */
 import { exec } from "node:child_process";
+import { mkdtemp, mkdir, readdir, copyFile, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+/** 沙箱复制时排除的大目录（node_modules/.git/构建产物等） */
+const SANDBOX_IGNORE = new Set([
+  "node_modules", ".git", ".hg", ".svn", ".idea", ".vscode", ".cache",
+  "output", "dist", "build", "coverage", ".next", ".nuxt", ".turbo",
+]);
+
+/**
+ * 创建沙箱：把项目复制到系统临时目录（排除大目录），返回副本路径。
+ * 复现/验证阶段在副本中执行命令，跑完 cleanupSandbox 丢弃 → 目标项目零污染。
+ */
+export async function createSandbox(projectPath) {
+  const sandboxPath = await mkdtemp(join(tmpdir(), "tutorialsmith-sandbox-"));
+  async function walk(from, to) {
+    await mkdir(to, { recursive: true });
+    const entries = await readdir(from, { withFileTypes: true });
+    for (const e of entries) {
+      if (SANDBOX_IGNORE.has(e.name)) continue;
+      const s = join(from, e.name);
+      const d = join(to, e.name);
+      if (e.isDirectory()) await walk(s, d);
+      else if (e.isFile()) await copyFile(s, d);
+    }
+  }
+  await walk(projectPath, sandboxPath);
+  return sandboxPath;
+}
+
+/** 清理沙箱（递归删除临时副本）。Windows 上文件被占用时 fs.rm 可能卡死 → 限重试 + 失败只告警不阻塞 */
+export async function cleanupSandbox(sandboxPath) {
+  try {
+    await rm(sandboxPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  } catch (err) {
+    console.warn(`  ⚠ 沙箱清理未完全成功（残留临时目录无害，系统会自动回收）: ${err.message.slice(0, 120)}`);
+  }
+}
 
 /** 危险命令特征：命中即跳过（不执行、不计分） */
 export const DANGEROUS_PATTERNS = [

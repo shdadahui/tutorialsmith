@@ -19,7 +19,7 @@ import { generateOutline, parseJsonLoose } from "./outliner.js";
 import { writeAllChapters, writeChapter, CHAPTER_FILE } from "./writer.js";
 import { reviewAllChapters } from "./reviewer.js";
 import { computeMetrics } from "./metrics.js";
-import { verifyChapters } from "./verifier.js";
+import { verifyChapters, createSandbox, cleanupSandbox } from "./verifier.js";
 import { runReproduce } from "./reproduce/engine.js";
 import { writeReport } from "./report.js";
 import { resolveRole, resolveVision } from "./config.js";
@@ -240,8 +240,10 @@ export async function runPipeline({
     });
   }
 
-  // 写作前复现（v4）：先把项目真实跑起来，产出"已验证命令清单"注入 writer
+  // 写作前复现（v4）：先把项目真实跑起来，产出"已验证命令清单"注入 writer。
+  // v6.1 沙箱：复现与验证都在临时副本中执行，目标项目零污染。
   let reproduction = null;
+  let sandboxPath = null;
   if (resume && metaLoaded) {
     try {
       const m = JSON.parse(await readFile(metaPath, "utf8"));
@@ -250,7 +252,9 @@ export async function runPipeline({
   }
   if (!reproduction && !noReproduce) {
     try {
-      reproduction = (await runReproduce({ config, projectPath, maxSteps: config.defaults.reproduceMaxSteps ?? 12 })).reproduction;
+      sandboxPath = await createSandbox(projectPath);
+      console.log(`  🛡 沙箱模式：复现与验证在隔离副本中执行（目标项目零污染）`);
+      reproduction = (await runReproduce({ config, projectPath: sandboxPath, maxSteps: config.defaults.reproduceMaxSteps ?? 12 })).reproduction;
     } catch (err) {
       console.warn(`  ⚠ 写作前复现失败（继续生成，但命令未经预验证）: ${err.message}`);
     }
@@ -319,11 +323,15 @@ export async function runPipeline({
     ? Math.round((reviewScores.reduce((a, b) => a + b, 0) / reviewScores.length) * 100) / 10
     : null;
 
-  // 真实验证（可选）
+  // 真实验证（可选）——在沙箱副本中执行（v6.1）
   let verifyResult = null;
   if (verify) {
-    console.log("  正在真实执行教程中的命令（危险命令已过滤）...");
-    verifyResult = await verifyChapters({ chapterFiles, projectPath });
+    console.log("  正在真实执行教程中的命令（危险命令已过滤，沙箱隔离）...");
+    if (!sandboxPath) {
+      sandboxPath = await createSandbox(projectPath);
+      console.log(`  🛡 沙箱模式：验证在隔离副本中执行（目标项目零污染）`);
+    }
+    verifyResult = await verifyChapters({ chapterFiles, projectPath: sandboxPath });
     console.log(`  验证结果: 执行 ${verifyResult.total} 条，通过 ${verifyResult.ok} 条，跳过 ${verifyResult.skipped} 条 → 可运行率 ${verifyResult.score ?? "N/A"}`);
   }
 
@@ -436,8 +444,7 @@ export async function runPipeline({
   }
 
   await writeIndex(outputDir, outline, chaptersWritten);
-  await writeReport({ metrics, outputDir, baseline, verify: verifyResult, fixHistory, usage });
-  await writeFile(join(outputDir, "metrics.json"), JSON.stringify({
+  await writeReport({ metrics, outputDir, baseline, verify: verifyResult, fixHistory, usage });  await writeFile(join(outputDir, "metrics.json"), JSON.stringify({
     qualityScore: metrics.qualityScore,
     grade: metrics.grade,
     completeness: metrics.completeness,
@@ -465,5 +472,12 @@ export async function runPipeline({
   console.log(`  质量分: ${metrics.qualityScore} / 100（等级 ${metrics.grade}）${qualityThreshold ? `，阈值 ${qualityThreshold}` : ""}`);
   if (usage.totalTokens > 0) console.log(`  用量: ${usage.totalTokens.toLocaleString()} tokens | 估算成本: ${usage.totalCost}${usage.currency}`);
   if (fixHistory.length) console.log(`  阈值修复: ${fixHistory.length} 轮（${fixHistory.map((f) => `${f.scoreBefore}→${f.scoreAfter}`).join("，")}）`);
+
+  // 清理沙箱（临时副本），目标项目始终保持零污染
+  if (sandboxPath) {
+    await cleanupSandbox(sandboxPath);
+    sandboxPath = null;
+  }
+
   return { outline, outputDir, metrics, usage };
 }
