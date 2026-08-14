@@ -21,6 +21,7 @@ import { reviewAllChapters } from "./reviewer.js";
 import { computeMetrics } from "./metrics.js";
 import { verifyChapters, createSandbox, cleanupSandbox } from "./verifier.js";
 import { runReproduce } from "./reproduce/engine.js";
+import { checkAllChaptersUrls } from "./urlcheck.js";
 import { writeReport } from "./report.js";
 import { resolveRole, resolveVision } from "./config.js";
 import { resetUsage, getUsageSummary } from "./usage.js";
@@ -428,6 +429,31 @@ export async function runPipeline({
       break;
     }
     console.log(`  ✓ 修复后质量分: ${before} → ${after}`);
+  }
+
+  // URL 真实性强制修复（不依赖质量阈值）：疑似编造 URL（如 example.com/login）的章节直接重写一轮
+  const urlIssues = checkAllChaptersUrls(chapterFiles);
+  const urlBadChapters = Object.keys(urlIssues).map(Number);
+  if (urlBadChapters.length > 0) {
+    console.log(`\n  🔗 发现 ${urlBadChapters.length} 章含疑似编造 URL（示例域子路径不存在），强制修复...`);
+    for (const idx of urlBadChapters) {
+      const chapter = outline.chapters.find((c) => c.index === idx);
+      if (!chapter) continue;
+      console.log(`  ✏ 重写（URL 真实性）: ${CHAPTER_FILE(idx)}`);
+      const { content } = await writeChapter({
+        roleConfig: writerRole, projectSummary, chapter, chapterIndex: idx,
+        reviewerIssues: urlIssues[idx].map((u) => `【URL 真实性】示例 URL 疑似编造: ${u}（example.com 等示例域只有根路径可访问，子路径不存在）；请改为真实可达的测试站点 URL（如 httpbin.org），或改为 <your-domain>/... 占位并注明替换`),
+        reproduction, custom: userOptions?.custom,
+      });
+      await writeFile(join(outputDir, CHAPTER_FILE(idx)), content, "utf8");
+    }
+    chapterFiles = await readChapterFiles(outputDir, outline);
+    metrics = computeMetrics({
+      outline, chapterFiles, projectFilePaths: filePaths,
+      reviewScore, codeScore: verifyResult?.score ?? null, weights,
+    });
+    addVerifyIssues();
+    console.log("  ✓ URL 问题章节已重写");
   }
 
   // 输出：index + 报告 + 机器可读指标 + 成本
