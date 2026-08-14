@@ -160,12 +160,13 @@ export function buildOutlinerSys(template) {
 1. ${
     template
       ? "严格遵循用户提供的章节模板（章节数量、标题、小节要点都必须按模板来，不允许增删章节或改变章节顺序）。"
-      : "严格遵循 7 章结构（第1章 入门与概述 / 第2章 核心概念与底层原理 / 第3章 环境搭建与准备 / 第4章 分步开发实战 / 第5章 调试排错与最佳实践 / 第6章 进阶与延伸 / 第7章 总结与思考题）。"
+      : "默认 7 章（第1章 入门与概述 / 第2章 核心概念与底层原理 / 第3章 环境搭建与准备 / 第4章 分步开发实战 / 第5章 调试排错与最佳实践 / 第6章 进阶与延伸 / 第7章 总结与思考题）。除非用户提出了额外的章节要求（见「用户的额外要求」），或项目内容确实需要拆得更细，可扩展到 8-12 章（把一个大主题拆成两章，不要硬塞）。"
   }
 2. 每章的小节要点必须结合项目实际情况改写，把[项目/技术主题]等占位符替换成真实主题，不要照抄模板。
 3. 涉及模块名的小节（如[核心模块1]）要替换成该项目真实的模块名。
-4. 输出必须是合法 JSON（不要输出 JSON 之外的任何文字、不要用代码块包裹）。
-5. JSON 结构固定为：
+4. 每章小节数量以内容需要为准，可以超出模板示例的数量（模板小节是"必含下限"，不是"上限"）；用户要求完整展开的章节（如概念详解）要尽量多设计小节。
+5. 输出必须是合法 JSON（不要输出 JSON 之外的任何文字、不要用代码块包裹）。
+6. JSON 结构固定为：
 {
   "project_name": "项目名",
   "audience_note": "一句话说明本教程面向的读者与学习路径设计思路",
@@ -178,7 +179,7 @@ export function buildOutlinerSys(template) {
   ]
 }
 
-## 章节模板（必须严格遵循）
+## 章节模板（默认 7 章；按需扩展章节数，每章小节可多于模板）
 ${structureText}`;
 }
 
@@ -228,9 +229,9 @@ ${filesText}
 要求：只输出合法 JSON。`;
 }
 
-/** Outliner 的用户消息 */
+/** Outliner 的用户消息。userOptions.custom 为使用者写作前的额外要求（如"需要完整的初始概念详解"）。 */
 export function buildOutlinerUser(projectSummary, userOptions) {
-  const { intro, audience, focus } = userOptions;
+  const { intro, audience, focus, custom } = userOptions;
   return `项目概况（JSON）：
 ${JSON.stringify(projectSummary, null, 2)}
 
@@ -245,12 +246,13 @@ ${
     : "目标受众：有编程基础、想系统学习该项目/技术的开发者（如未指定，按此假设）"
 }
 ${focus ? `教程侧重：${focus}` : ""}
+${custom ? `\n## 用户的额外要求（必须在大纲中体现；若要求涉及更细的拆分，可相应增加章节或小节）\n${custom}` : ""}
 
-请设计 7 章教程大纲，只输出合法 JSON。`;
+请设计教程大纲（默认 7 章，可按额外要求扩展），只输出合法 JSON。`;
 }
 
-/** Writer 的用户消息。reproduction 为写作前复现报告（已验证命令清单），提供时命令必须从中选取。 */
-export function buildWriterUser({ projectSummary, chapter, chapterIndex, reviewerIssues, reproduction }) {
+/** Writer 的用户消息。reproduction 为写作前复现报告（已验证命令清单），提供时命令必须从中选取。custom 为使用者额外要求。 */
+export function buildWriterUser({ projectSummary, chapter, chapterIndex, reviewerIssues, reproduction, custom }) {
   const chapterSpec = chapter.sections.map((s) => `- ${s}`).join("\n");
   const parts = [
     `## 本章大纲（第 ${chapterIndex} 章）`,
@@ -273,6 +275,9 @@ export function buildWriterUser({ projectSummary, chapter, chapterIndex, reviewe
       failed.length ? failed.map((f) => `- ${f.cmd}：${(f.error || "").split("\n")[0].slice(0, 120)}`).join("\n") : "（无）",
       reproduction.notes?.length ? `\n## 复现补充说明\n${reproduction.notes.join("\n")}` : "",
     );
+  }
+  if (custom) {
+    parts.push("", `## 用户的额外要求（本章内容必须落实；要求完整展开的部分，小节内容要写充分、不设篇幅上限）`, custom);
   }
   if (reviewerIssues && reviewerIssues.length > 0) {
     parts.push("", `## 上一轮审查意见（必须逐条落实）`, reviewerIssues.map((i, idx) => `${idx + 1}. ${i}`).join("\n"));

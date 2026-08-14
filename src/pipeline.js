@@ -278,6 +278,7 @@ export async function runPipeline({
     outputDir,
     resume,
     reproduction,
+    custom: userOptions?.custom,
     concurrency: config.defaults.concurrency,
   });
 
@@ -303,6 +304,7 @@ export async function runPipeline({
         resume: false,
         reviewMap,
         reproduction,
+        custom: userOptions?.custom,
         concurrency: config.defaults.concurrency,
       });
       console.log(`  ✓ 修订完成`);
@@ -389,6 +391,7 @@ export async function runPipeline({
         roleConfig: writerRole, projectSummary, chapter, chapterIndex: idx,
         reviewerIssues: issues.map((i) => `【本地量化问题】${i}`),
         reproduction,
+        custom: userOptions?.custom,
       });
       await writeFile(join(outputDir, CHAPTER_FILE(idx)), content, "utf8");
     }

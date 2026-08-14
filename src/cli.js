@@ -44,6 +44,7 @@ const { values } = parseArgs({
     intro: { type: "string" },
     audience: { type: "string" },
     focus: { type: "string" },
+    custom: { type: "string" },
     resume: { type: "boolean", default: false },
     "skip-review": { type: "boolean", default: false },
     verify: { type: "boolean", default: false },
@@ -76,6 +77,7 @@ if (values.help || !values.project) {
   --intro <text>      补充项目简介（可选）
   --audience <text>   目标受众，如"有 Python 基础的开发者"（可选）
   --focus <text>      教程侧重，如"偏代码实战 / 偏原理讲解"（可选）
+  --custom <text>     写作前额外要求，如"需要完整的初始概念详解"（可选，注入大纲与每章）
   --resume            断点续写：跳过输出目录中已生成的章节
   --skip-review       跳过质量审查阶段（更快更省 token）
   --verify            开启真实验证：执行教程中的命令并统计可运行率
@@ -164,14 +166,14 @@ try {
       config,
       projectPath,
       outputDir,
-      userOptions: { intro: values.intro, audience: values.audience, focus: values.focus },
+      userOptions: { intro: values.intro, audience: values.audience, focus: values.focus, custom: values.custom },
     });
   } else {
     await runPipeline({
       config,
       projectPath,
       outputDir,
-      userOptions: { intro: values.intro, audience: values.audience, focus: values.focus },
+      userOptions: { intro: values.intro, audience: values.audience, focus: values.focus, custom: values.custom },
       resume: values.resume,
       skipReview: values["skip-review"],
       verify: values.verify,

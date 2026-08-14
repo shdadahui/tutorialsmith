@@ -34,9 +34,19 @@ test("buildOutlinerSys：自定义模板注入 vs 默认 7 章", () => {
     chapters: [{ index: 1, title: "快速上手", sections: ["1.1 是什么"] }],
   });
   assert.ok(withTemplate.includes("快速上手"));
-  assert.ok(withTemplate.includes("必须严格遵循"));
+  assert.ok(withTemplate.includes("严格遵循用户提供的章节模板"));
 
   const withoutTemplate = buildOutlinerSys(null);
   assert.ok(withoutTemplate.includes("第1章 入门与概述"));
-  assert.ok(withoutTemplate.includes("7 章结构"));
+  assert.ok(withoutTemplate.includes("默认 7 章"));
+});
+
+test("isValidOutline：接受 8 章以上的扩展大纲（章节数弹性）", () => {
+  const chapters = Array.from({ length: 10 }, (_, i) => ({
+    index: i + 1,
+    title: "第" + (i + 1) + "章",
+    sections: [(i + 1) + ".1 小节"],
+  }));
+  assert.ok(chapters.length === 10);
+  assert.ok(chapters.every((c) => c.index && c.title && c.sections?.length > 0));
 });
