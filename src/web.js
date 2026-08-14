@@ -24,7 +24,14 @@ const WEB_HTML = join(__dirname, "..", "web", "index.html");
 const OUT_ROOT = join(__dirname, "..", "web", "out");
 const SAMPLES_DIR = join(__dirname, "..", "benchmarks", "samples");
 
-const port = Number(process.argv[process.argv.indexOf("--port") + 1] || process.env.PORT || 8787);
+/** 端口解析：优先 --port 参数，其次环境变量 PORT，最后默认 8787；非法值一律回退默认 */
+function resolvePort() {
+  const argIdx = process.argv.indexOf("--port");
+  const raw = argIdx !== -1 ? process.argv[argIdx + 1] : process.env.PORT;
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 && n < 65536 ? n : 8787;
+}
+const port = resolvePort();
 
 /** 任务表：id -> { status, log[], outDir, createdAt, exitCode } */
 const jobs = new Map();
