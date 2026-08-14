@@ -1,10 +1,19 @@
 # TutorialSmith（教程匠）— 基于项目自动生成技术教程的 Agent
 
-[![CI](https://github.com/shdadahui/tutorialsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/shdadahui/tutorialsmith/actions)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/shdadahui/tutorialsmith)](https://github.com/shdadahui/tutorialsmith/releases)
-[![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](package.json)
-[![npm](https://img.shields.io/npm/v/tutorialsmith)](https://www.npmjs.com/package/tutorialsmith)
+npm error code E403  
+npm error 403 403 Forbidden - PUT <https://registry.npmjs.org/tutorialsmith> - Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages.  
+npm error 403 In most cases, you or one of your dependencies are requesting  
+npm error 403 a package version that is forbidden by your security policy, or  
+npm error 403 on a server you do not have access to.  
+npm error A complete log of this run can be found in: F:\npmcache_logs\2026-08-12T08_10_46_028Z-debug-0.log
+
+![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)
+
+![Release](https://img.shields.io/github/v/release/shdadahui/tutorialsmith)
+
+![Node](https://img.shields.io/badge/node-%3E%3D18-blue)
+
+![npm](https://img.shields.io/npm/v/tutorialsmith)
 
 一个 **Node.js 命令行工具**：给定一个项目目录，自动产出一份体系完整的技术教程（Markdown，7 章结构），覆盖基础概念、底层原理、环境搭建、分步开发、调试排错、最佳实践与进阶延伸。
 
@@ -105,19 +114,19 @@ node src/cli.js --project ./demo --output ./output/demo-tutorial
 
 可选参数：
 
-| 参数 | 说明 |
-| --- | --- |
-| `--audience "有 Node.js 基础的开发者"` | 指定目标受众 |
-| `--focus "偏代码实战"` | 指定教程侧重 |
-| `--intro "..."` | 补充项目简介 |
-| `--resume` | 断点续写：跳过已生成的章节 |
-| `--skip-review` | 跳过质量审查（更快、更省 token） |
-| `--verify` | 真实验证：执行教程中的命令，统计可运行率（默认关闭） |
-| `--template ./templates/lean.json` | 自定义章节模板（默认内置 7 章结构） |
-| `--threshold 85` | 质量分阈值（默认读 config），低于则自动修复教程 |
-| `--baseline metrics.json` | 黄金样本指标，报告中做对比 |
-| `--no-fix` | 关闭"分数低于阈值自动修复" |
-| `--browse [--port 4000]` | 生成完成后用 mdbrowse-cli 打开网页版文档预览 |
+| 参数                                 | 说明                            |
+| ---------------------------------- | ----------------------------- |
+| `--audience "有 Node.js 基础的开发者"`    | 指定目标受众                        |
+| `--focus "偏代码实战"`                  | 指定教程侧重                        |
+| `--intro "..."`                    | 补充项目简介                        |
+| `--resume`                         | 断点续写：跳过已生成的章节                 |
+| `--skip-review`                    | 跳过质量审查（更快、更省 token）           |
+| `--verify`                         | 真实验证：执行教程中的命令，统计可运行率（默认关闭）    |
+| `--template ./templates/lean.json` | 自定义章节模板（默认内置 7 章结构）           |
+| `--threshold 85`                   | 质量分阈值（默认读 config），低于则自动修复教程   |
+| `--baseline metrics.json`          | 黄金样本指标，报告中做对比                 |
+| `--no-fix`                         | 关闭"分数低于阈值自动修复"                |
+| `--browse [--port 4000]`           | 生成完成后用 mdbrowse-cli 打开网页版文档预览 |
 
 ### 4b. 网页版文档预览（--browse）
 
@@ -155,14 +164,14 @@ output/xxx/
 - **完整度**（Completeness）= 结构/格式/密度 加权 → "内容生成得全不全、规不规范"
 - **可信度**（Reliability）= 事实/代码/评审 加权 → "内容是不是真的、能不能跑"
 
-| 维度 | 权重 | 归属 | 计算方式 | 是否耗 LLM |
-| --- | --- | --- | --- | --- |
-| 结构完整度 | 25% | 完整度 | 大纲每章小节是否被覆盖（关键词匹配） | 否 |
-| 事实一致性 | 25% | 可信度 | 教程引用的文件路径是否真实存在 | 否 |
-| 格式规范度 | 15% | 完整度 | 标题跳级/代码块未闭合/表格列数/加粗配对 | 否 |
-| 信息密度 | 10% | 完整度 | 章节字数与代码占比（防注水） | 否 |
-| 代码可运行率 | 10% | 可信度 | `--verify` 真实执行**项目内命令**的通过率 | 否 |
-| LLM 评审分 | 15% | 可信度 | reviewer 六维均分（默认跨模型评审，标注"参考"） | 是 |
+| 维度      | 权重  | 归属  | 计算方式                          | 是否耗 LLM |
+| ------- | --- | --- | ----------------------------- | ------- |
+| 结构完整度   | 25% | 完整度 | 大纲每章小节是否被覆盖（关键词匹配）            | 否       |
+| 事实一致性   | 25% | 可信度 | 教程引用的文件路径是否真实存在               | 否       |
+| 格式规范度   | 15% | 完整度 | 标题跳级/代码块未闭合/表格列数/加粗配对         | 否       |
+| 信息密度    | 10% | 完整度 | 章节字数与代码占比（防注水）                | 否       |
+| 代码可运行率  | 10% | 可信度 | `--verify` 真实执行**项目内命令**的通过率  | 否       |
+| LLM 评审分 | 15% | 可信度 | reviewer 六维均分（默认跨模型评审，标注"参考"） | 是       |
 
 **平台公平性**：`--verify` 会把命令分为两类——**项目内命令**（`node src/xxx`、`npm test` 等，失败 = 教程写错了，计入可运行率）与**系统/平台命令**（`nvm`、`brew`、`~` 路径、`npm publish` 等，目标环境可能与本机不同，记为"环境假设"不计分，单独展示适配度）。这样 Windows 上跑 macOS 教程不会被冤枉扣分。
 
@@ -306,6 +315,7 @@ npm test        # 18 个单测用例（metrics/verifier/config/outliner/usage）
 **核心逻辑**：读文件 → 逐行解析 `KEY=value`（支持引号包裹、跳过 `#` 注释）→ 写入 `process.env`（已有值不覆盖）。
 
 **教学要点**：
+
 - `loadEnv._loaded` 标记实现**幂等**，防止重复加载覆盖运行中的修改
 - 用 `import.meta.url` 推导项目根目录，而不是写死相对路径（在任何目录运行都正确）
 
@@ -314,6 +324,7 @@ npm test        # 18 个单测用例（metrics/verifier/config/outliner/usage）
 **解决什么问题**：把 `config.json` 变成程序能用的对象，并且按角色查表，得到"这个角色该调哪个 URL、哪个模型、哪个 Key"。
 
 **两个关键函数**：
+
 - `loadConfig()`：读 JSON → 校验（`providers`/`roles` 必须存在、角色引用的 provider 必须已注册）→ 返回规范化配置
 - `resolveRole(config, role)`：`roles[role] → providers[provider]` 两步查表，拼出 `{ baseURL, model, apiKey, temperature }`；Key 缺失时给出**明确的报错提示**
 
@@ -324,6 +335,7 @@ npm test        # 18 个单测用例（metrics/verifier/config/outliner/usage）
 **解决什么问题**：所有 LLM 调用统一收口，保证错误处理和重试逻辑只有一份。
 
 **核心逻辑**：
+
 - 公共的 `requestCompletion()`：拼 URL、注入 Key、错误分级、指数退避重试
 - `chat()`：纯文本对话（流水线四个阶段都用它）
 - `chatVision()`：多模态调用（文本 + base64 图片，供视觉模型提取架构图）
@@ -336,6 +348,7 @@ npm test        # 18 个单测用例（metrics/verifier/config/outliner/usage）
 **解决什么问题**：把"什么是一篇好教程"的定义沉淀成可复用的提示词资产，四阶段共享同一套标准。
 
 **关键导出**：
+
 - `WRITING_STYLE`：完美教程写作规范（认知递进 / 讲清取舍 / 实践导向 / 严谨准确 / 体系完整）
 - `TUTORIAL_STRUCTURE`：7 章固定框架（每章的小节要求）
 - `buildOutlinerSys(template)`：大纲系统提示词（支持自定义模板）
@@ -349,19 +362,21 @@ npm test        # 18 个单测用例（metrics/verifier/config/outliner/usage）
 **解决什么问题**：把"一个项目目录"变成"一份喂给 LLM 的紧凑素材"，模拟人类的阅读顺序：README → 依赖清单 → 入口 → 源码。
 
 **三个层次的设计**：
+
 - **过滤**：`IGNORED_DIRS`（node_modules/.git/dist 等）、`IGNORED_EXTS`（二进制/锁文件）、`SENSITIVE_NAMES`（.env/密钥/证书）——对应"工具安全护栏"
 - **排序**：`filePriority()` 按"README > 依赖清单 > 入口文件 > 越靠近根目录越优先"排序
 - **限流**：最多 60 个文件、单文件截断 8000 字符、总素材上限 `maxProjectBytes`——控制 token 成本
 
 ### 6. `src/outliner.js` — 大纲生成
 
-**核心逻辑**：项目概况 → LLM 生成 7 章大纲 JSON → `parseJsonLoose()` 宽松解析（容忍 ```json 围栏和前后杂字）→ `isValidOutline()` 结构校验 → 失败重试 3 次 → 仍失败则用 `TUTORIAL_STRUCTURE` 模板兜底。
+**核心逻辑**：项目概况 → LLM 生成 7 章大纲 JSON → `parseJsonLoose()` 宽松解析（容忍 \`\`\`json 围栏和前后杂字）→ `isValidOutline()` 结构校验 → 失败重试 3 次 → 仍失败则用 `TUTORIAL_STRUCTURE` 模板兜底。
 
 **教学要点**：**先大纲后正文**是长文生成的黄金实践——"写什么"和"怎么写"分开决策，还让程序能校验 LLM 输出、失败可重试。
 
 ### 7. `src/writer.js` — 逐章撰写
 
 **核心逻辑**：
+
 - **每章一次独立调用**：上下文不超限，单章失败不影响其它章
 - **断点续写**：`--resume` 时跳过已存在的章节文件（中断后接着写）
 - **审查反馈循环**：收到 reviewer 的 `issues` 时，把意见注入提示词重写该章
@@ -435,11 +450,11 @@ node benchmarks/compare-models.js --models deepseek-chat,deepseek-reasoner
 
 **实测结果**（hello-cli，标准评测模式）：
 
-| 模型配置 | 耗时 | 成本 | 完整度 | 可信度 | 质量分 |
-| --- | --- | --- | --- | --- | --- |
-| deepseek-chat | 5.8 min | ¥0.60 | 91.9 | 64.7 | 78.3 (B) |
-| deepseek-reasoner | 20.5 min | ¥3.70 | 77.4 | **81.6** | 79.5 (B) |
-| chat+reasoner-review | 20.1 min | ¥1.59 | **93.7** | 68.3 | **81.0 (A)** |
+| 模型配置                 | 耗时       | 成本    | 完整度      | 可信度      | 质量分          |
+| -------------------- | -------- | ----- | -------- | -------- | ------------ |
+| deepseek-chat        | 5.8 min  | ¥0.60 | 91.9     | 64.7     | 78.3 (B)     |
+| deepseek-reasoner    | 20.5 min | ¥3.70 | 77.4     | **81.6** | 79.5 (B)     |
+| chat+reasoner-review | 20.1 min | ¥1.59 | **93.7** | 68.3     | **81.0 (A)** |
 
 结论：reasoner 写内容更严谨（可信度最高）但慢且贵、完整度反而低；**reasoner 更适合当"裁判"（评审）而非"写手"**——混合方案用一半成本达到最高总分，这正支撑了工具默认的跨模型评审设计（writer=chat、reviewer=reasoner）。
 
@@ -447,41 +462,41 @@ node benchmarks/compare-models.js --models deepseek-chat,deepseek-reasoner
 
 ## 六、进阶玩法
 
-| 场景 | 做法 |
-| --- | --- |
-| 教程很长中途断了 | 重新运行加 `--resume`，已写好的章节自动跳过 |
-| 想快速看效果 | `--skip-review` 跳过审查阶段，省一半调用 |
-| 想让教程更贴合业务 | `--intro` / `--audience` / `--focus` 三个参数给足上下文 |
-| 让教程命令真实可跑 | 加 `--verify`，失败的命令会进 report.md 待改进清单并触发修复 |
-| 换成精简结构 | `--template ./templates/lean.json`（4 章） |
-| 提高质量标准 | `--threshold 90`，低于 90 分自动修复 |
-| 和"完美教程"对标 | 把参考教程的指标存成 metrics.json，用 `--baseline` 对比 |
-| 接入新模型 | `providers` 加一条（baseURL + apiKeyEnv + defaultModel）即可 |
-| 提取项目架构图 | `vision.enabled: true` 并配置 `DASHSCOPE_API_KEY`（DeepSeek 无视觉模型） |
-| 网页版文档预览 | 加 `--browse [--port 4000]`，或手动 `npx --yes mdbrowse-cli <目录> --read-only` |
-| 图形界面生成 | `npm run web` → http://localhost:8787（表单提交 + 实时日志 + 在线预览） |
-| 选模型 | `npm run compare` 跑多模型对比（质量/成本/耗时权衡表） |
-| 公网分享教程 | `npx --yes mdbrowse-cli <目录> --tunnel`（Cloudflare Tunnel） |
-| 控制成本 | 调低 `maxProjectBytes`（扫描素材量）、用便宜的模型做 scanner/reviewer |
-| 输出 PDF/HTML | 教程是标准 Markdown，用 pandoc / typora / mdbook 一键转换 |
+| 场景          | 做法                                                                       |
+| ----------- | ------------------------------------------------------------------------ |
+| 教程很长中途断了    | 重新运行加 `--resume`，已写好的章节自动跳过                                              |
+| 想快速看效果      | `--skip-review` 跳过审查阶段，省一半调用                                             |
+| 想让教程更贴合业务   | `--intro` / `--audience` / `--focus` 三个参数给足上下文                           |
+| 让教程命令真实可跑   | 加 `--verify`，失败的命令会进 report.md 待改进清单并触发修复                                |
+| 换成精简结构      | `--template ./templates/lean.json`（4 章）                                  |
+| 提高质量标准      | `--threshold 90`，低于 90 分自动修复                                             |
+| 和"完美教程"对标   | 把参考教程的指标存成 metrics.json，用 `--baseline` 对比                                |
+| 接入新模型       | `providers` 加一条（baseURL + apiKeyEnv + defaultModel）即可                    |
+| 提取项目架构图     | `vision.enabled: true` 并配置 `DASHSCOPE_API_KEY`（DeepSeek 无视觉模型）           |
+| 网页版文档预览     | 加 `--browse [--port 4000]`，或手动 `npx --yes mdbrowse-cli <目录> --read-only` |
+| 图形界面生成      | `npm run web` → <http://localhost:8787（表单提交> + 实时日志 + 在线预览）              |
+| 选模型         | `npm run compare` 跑多模型对比（质量/成本/耗时权衡表）                                    |
+| 公网分享教程      | `npx --yes mdbrowse-cli <目录> --tunnel`（Cloudflare Tunnel）                |
+| 控制成本        | 调低 `maxProjectBytes`（扫描素材量）、用便宜的模型做 scanner/reviewer                     |
+| 输出 PDF/HTML | 教程是标准 Markdown，用 pandoc / typora / mdbook 一键转换                           |
 
 ---
 
 ## 七、常见问题（FAQ）
 
-**Q：报错「找不到 DEEPSEEK_API_KEY 环境变量」？**
+**Q：报错「找不到 DEEPSEEK_API_KEY 环境变量」？**  
 A：确认 `.env` 文件存在且格式为 `DEEPSEEK_API_KEY=sk-xxx`（无引号），或已在系统环境变量中设置。
 
-**Q：某个阶段反复重试很慢？**
+**Q：某个阶段反复重试很慢？**  
 A：多为限流（429）。工具已做指数退避自动重试；仍失败可稍后再跑，用 `--resume` 接着来。
 
-**Q：生成的教程章节风格不一致？**
+**Q：生成的教程章节风格不一致？**  
 A：`WRITING_STYLE` 会在每一章注入，且 reviewer 会兜底修正；想要更强的一致性，可以把 writer 全部章节放同一个模型并调低 temperature。
 
-**Q：会读取到项目里的密钥吗？**
+**Q：会读取到项目里的密钥吗？**  
 A：不会。`.env`、`.pem`、`id_rsa`、含 secret/credential/token 的文件名都会被过滤；且工具只读不写目标目录。
 
-**Q：为什么 deepseek 的 baseURL 不带 /v1，openai 带？**
+**Q：为什么 deepseek 的 baseURL 不带 /v1，openai 带？**  
 A：DeepSeek 官方兼容接口就是 `https://api.deepseek.com`（/chat/completions 直接在根路径）；OpenAI 则要求 `/v1/chat/completions`。按服务商文档填即可。
 
 ---
@@ -541,12 +556,12 @@ tutorial-agent/
 
 ### P1（下一个版本 v6，按序推进）
 
-| # | 特性 | 目标 | 关键设计 | 验收标准 | 简历价值 |
-| --- | --- | --- | --- | --- | --- |
-| 1 | **代码沙箱**（--verify 隔离执行）✅ v6.1 | `--verify` 不再污染目标项目 | 复现+验证在临时副本执行（排除 node_modules/.git 等），跑完清理；清理失败仅告警不阻塞 | 验证后项目目录 `git status` 零改动，可运行率数据不变 | 工程安全硬实力 |
-| 2 | **SSE 流式输出** | Web 界面实时看到章节逐字生成 | web.js 用 Server-Sent Events 推送 writer 进度 | 浏览器实时流式渲染，无轮询 | 现代 Web 技术栈 |
-| 3 | **模型路由** | 同质量下成本再降 | scanner/outliner/复现用便宜模型；审查/难题失败自动升级 reasoner | 对比实测成本降幅 + 质量分不降 | 成本工程量化 |
-| 4 | **RAG 素材检索** | 突破 200KB 素材上限，大项目可用 | 大项目启用 embedding 索引，writer 每章只检索相关片段 | 300KB+ 项目也能高质量生成 | 检索增强生成实战 |
+| # | 特性                            | 目标                  | 关键设计                                                 | 验收标准                              | 简历价值       |
+| - | ----------------------------- | ------------------- | ---------------------------------------------------- | --------------------------------- | ---------- |
+| 1 | **代码沙箱**（--verify 隔离执行）✅ v6.1 | `--verify` 不再污染目标项目 | 复现+验证在临时副本执行（排除 node_modules/.git 等），跑完清理；清理失败仅告警不阻塞 | 验证后项目目录 `git status` 零改动，可运行率数据不变 | 工程安全硬实力    |
+| 2 | **SSE 流式输出**                  | Web 界面实时看到章节逐字生成    | web.js 用 Server-Sent Events 推送 writer 进度             | 浏览器实时流式渲染，无轮询                     | 现代 Web 技术栈 |
+| 3 | **模型路由**                      | 同质量下成本再降            | scanner/outliner/复现用便宜模型；审查/难题失败自动升级 reasoner        | 对比实测成本降幅 + 质量分不降                  | 成本工程量化     |
+| 4 | **RAG 素材检索**                  | 突破 200KB 素材上限，大项目可用 | 大项目启用 embedding 索引，writer 每章只检索相关片段                  | 300KB+ 项目也能高质量生成                  | 检索增强生成实战   |
 
 ### P2（按需）
 

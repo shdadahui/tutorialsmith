@@ -3,7 +3,7 @@
     "deepseek": {
       "baseURL": "https://api.deepseek.com",
       "apiKeyEnv": "DEEPSEEK_API_KEY",
-      "defaultModel": "deepseek-chat"
+      "defaultModel": "deepseek-v4-flash"
     },
     "openai": {
       "baseURL": "https://api.openai.com/v1",
@@ -24,6 +24,11 @@
       "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
       "apiKeyEnv": "DASHSCOPE_API_KEY",
       "defaultModel": "qwen-vl-max"
+    },
+    "mimo": {
+      "baseURL": "https://api.xiaomimimo.com/v1",
+      "apiKeyEnv": "MIMO_API_KEY",
+      "defaultModel": "mimo-v2.5"
     }
   },
   "roles": {
@@ -35,9 +40,9 @@
     "reproduce":{ "provider": "deepseek", "model": "deepseek-chat" }
   },
   "vision": {
-    "provider": "qwen-vl",
-    "model": "qwen-vl-max",
-    "enabled": false
+    "provider": "mimo",
+    "model": "mimo-v2.5",
+    "enabled": true
   },
   "defaults": {
     "temperature": 0.7,
