@@ -45,7 +45,9 @@ const { values } = parseArgs({
     audience: { type: "string" },
     focus: { type: "string" },
     custom: { type: "string" },
+    assess: { type: "boolean", default: false },
     resume: { type: "boolean", default: false },
+    fresh: { type: "boolean", default: false },
     "skip-review": { type: "boolean", default: false },
     verify: { type: "boolean", default: false },
     template: { type: "string" },
@@ -54,6 +56,7 @@ const { values } = parseArgs({
     "no-fix": { type: "boolean", default: false },
     "no-reproduce": { type: "boolean", default: false },
     "no-example-code": { type: "boolean", default: false },
+    "no-learning-path": { type: "boolean", default: false },
     browse: { type: "boolean", default: false },
     port: { type: "string" },
     agent: { type: "string" },
@@ -79,6 +82,8 @@ if (values.help || !values.project) {
   --audience <text>   目标受众，如"有 Python 基础的开发者"（可选）
   --focus <text>      教程侧重，如"偏代码实战 / 偏原理讲解"（可选）
   --custom <text>     写作前额外要求，如"需要完整的初始概念详解"（可选，注入大纲与每章）
+  --assess            生成前交互评估读者基础/目标/侧重，自动定受众（可选）
+  --no-learning-path  关闭学习清单生成（默认开启）
   --resume            断点续写：跳过输出目录中已生成的章节
   --skip-review       跳过质量审查阶段（更快更省 token）
   --verify            开启真实验证：执行教程中的命令并统计可运行率
@@ -170,12 +175,24 @@ try {
       userOptions: { intro: values.intro, audience: values.audience, focus: values.focus, custom: values.custom },
     });
   } else {
+    // 自动续写检测（④）：output 已有 meta.json 且未显式 --resume/--fresh → 自动续写
+    let resume = values.resume;
+    if (!resume && !values.fresh) {
+      const { access } = await import("node:fs/promises");
+      const { join } = await import("node:path");
+      try {
+        await access(join(outputDir, "meta.json"));
+        resume = true;
+        console.log(`  ⏭ 检测到 ${join(outputDir, "meta.json")}，自动续写上次进度（加 --fresh 可强制重跑）`);
+      } catch { /* 无历史进度，正常全流程 */ }
+    }
+
     await runPipeline({
       config,
       projectPath,
       outputDir,
       userOptions: { intro: values.intro, audience: values.audience, focus: values.focus, custom: values.custom },
-      resume: values.resume,
+      resume,
       skipReview: values["skip-review"],
       verify: values.verify,
       template,
@@ -184,6 +201,8 @@ try {
       noFix: values["no-fix"],
       noReproduce: values["no-reproduce"],
       noExampleCode: values["no-example-code"],
+      assess: values.assess,
+      noLearningPath: values["no-learning-path"],
     });
   }
 

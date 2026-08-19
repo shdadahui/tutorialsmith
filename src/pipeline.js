@@ -23,6 +23,7 @@ import { verifyChapters, createSandbox, cleanupSandbox } from "./verifier.js";
 import { runReproduce } from "./reproduce/engine.js";
 import { checkAllChaptersUrls } from "./urlcheck.js";
 import { generateExampleCode } from "./examplecode.js";
+import { generateLearningPath } from "./learningpath.js";
 import { writeReport } from "./report.js";
 import { resolveRole, resolveVision } from "./config.js";
 import { resetUsage, getUsageSummary } from "./usage.js";
@@ -171,7 +172,7 @@ async function appendPitfallRecord({ config, outputDir, verifyResult, projectSum
 export async function runPipeline({
   config, projectPath, outputDir, userOptions,
   resume = false, skipReview = false, verify = false,
-  template = null, baseline = null, noFix = false, threshold = null, noReproduce = false, noExampleCode = false,
+  template = null, baseline = null, noFix = false, threshold = null, noReproduce = false, noExampleCode = false, noLearningPath = false, assess = false,
 }) {
   // 每个 run 独立统计 token/成本（基准测试逐项目调用时保证互不污染）
   resetUsage();
@@ -230,6 +231,16 @@ export async function runPipeline({
     }
     projectSummary = summary;
     console.log(`  ✓ 项目概况: ${projectSummary.project_name} | 技术栈: ${(projectSummary.tech_stack || []).join(", ") || "未知"}`);
+  }
+
+  // 能力评估前置（--assess）：交互问卷 → 自动产出 audience/focus（显式参数优先）
+  if (assess && !userOptions.audience) {
+    const { assessUser } = await import("./assess.js");
+    const r = await assessUser({ projectSummary });
+    if (r) {
+      userOptions = { ...userOptions, audience: userOptions.audience || r.audience, focus: userOptions.focus || r.focus };
+      console.log(`  📋 评估结果 → 受众: ${r.audience.slice(0, 42)}... | 侧重: ${r.focus}`);
+    }
   }
 
   if (!outline) {
@@ -469,6 +480,17 @@ export async function runPipeline({
     exampleCount = res.count;
     if (res.count > 0) console.log(`  ✓ 已生成 ${res.count} 个示例文件 → ${join(outputDir, "example-code")}`);
     else console.log("  ⚠ 示例代码生成失败或为空（教程仍完整）");
+  }
+
+  // 学习清单（借鉴 codojo 的"文件即进度"协议）：每章 checkpoint + 自测题 + 打卡框
+  if (!noLearningPath) {
+    console.log("\n  📝 正在生成学习清单（learning-path.md）...");
+    const ok = await generateLearningPath({
+      config, outputDir, outline,
+      chapterFiles: await readChapterFiles(outputDir, outline),
+    });
+    if (ok) console.log("  ✓ 学习清单已生成（每章理解目标 + 自测题 + 打卡框）");
+    else console.log("  ⚠ 学习清单生成失败（教程仍完整）");
   }
 
   // 输出：index + 报告 + 机器可读指标 + 成本
