@@ -53,6 +53,7 @@ const { values } = parseArgs({
     threshold: { type: "string" },
     "no-fix": { type: "boolean", default: false },
     "no-reproduce": { type: "boolean", default: false },
+    "no-example-code": { type: "boolean", default: false },
     browse: { type: "boolean", default: false },
     port: { type: "string" },
     agent: { type: "string" },
@@ -182,6 +183,7 @@ try {
       threshold,
       noFix: values["no-fix"],
       noReproduce: values["no-reproduce"],
+      noExampleCode: values["no-example-code"],
     });
   }
 

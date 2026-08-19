@@ -53,7 +53,10 @@ async function requestCompletion({ roleConfig, body, maxRetries = 3 }) {
             }))
           : [];
         if (content == null && !toolCalls.length) {
-          throw new Error(`响应缺少 content 或 tool_calls: ${JSON.stringify(data).slice(0, 300)}`);
+          const hint = message.reasoning
+            ? "（模型输出了 reasoning 但 content 为空：这是思考型模型，reasoning 消耗了全部 max_tokens 预算，请为该角色增大 maxTokens，如 config.json 中设为 4096+）"
+            : "";
+          throw new Error(`响应缺少 content 或 tool_calls${hint}: ${JSON.stringify(data).slice(0, 200)}`);
         }
         // 记录 token 用量（成本统计 + DeepSeek 上下文缓存命中统计）
         const usage = data?.usage;

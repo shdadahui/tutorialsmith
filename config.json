@@ -29,6 +29,11 @@
       "baseURL": "https://api.xiaomimimo.com/v1",
       "apiKeyEnv": "MIMO_API_KEY",
       "defaultModel": "mimo-v2.5"
+    },
+    "sensenova": {
+      "baseURL": "https://token.sensenova.cn/v1",
+      "apiKeyEnv": "SENSENOVA_API_KEY",
+      "defaultModel": "sensenova-6.8-flash-lite"
     }
   },
   "roles": {

@@ -257,6 +257,13 @@ npm test        # 18 个单测用例（metrics/verifier/config/outliner/usage）
       "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
       "apiKeyEnv": "DASHSCOPE_API_KEY",
       "defaultModel": "qwen-vl-max"
+    },
+    "sensenova": {          // 商汤 SenseNova（OpenAI 兼容，配 SENSENOVA_API_KEY）
+      "baseURL": "https://token.sensenova.cn/v1",
+      "apiKeyEnv": "SENSENOVA_API_KEY",
+      "defaultModel": "sensenova-6.8-flash-lite"
+      // 注意：flash-lite 是思考型模型（响应带 reasoning 字段），reasoning 会消耗
+      // 大量 max_tokens 预算——若 content 为空，请把该角色的 maxTokens 提到 4096+
     }
   },
   "roles": {              // ② 角色分工：每个阶段用哪个服务商 + 哪个模型

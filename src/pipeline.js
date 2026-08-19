@@ -22,6 +22,7 @@ import { computeMetrics } from "./metrics.js";
 import { verifyChapters, createSandbox, cleanupSandbox } from "./verifier.js";
 import { runReproduce } from "./reproduce/engine.js";
 import { checkAllChaptersUrls } from "./urlcheck.js";
+import { generateExampleCode } from "./examplecode.js";
 import { writeReport } from "./report.js";
 import { resolveRole, resolveVision } from "./config.js";
 import { resetUsage, getUsageSummary } from "./usage.js";
@@ -170,7 +171,7 @@ async function appendPitfallRecord({ config, outputDir, verifyResult, projectSum
 export async function runPipeline({
   config, projectPath, outputDir, userOptions,
   resume = false, skipReview = false, verify = false,
-  template = null, baseline = null, noFix = false, threshold = null, noReproduce = false,
+  template = null, baseline = null, noFix = false, threshold = null, noReproduce = false, noExampleCode = false,
 }) {
   // 每个 run 独立统计 token/成本（基准测试逐项目调用时保证互不污染）
   resetUsage();
@@ -454,6 +455,20 @@ export async function runPipeline({
     });
     addVerifyIssues();
     console.log("  ✓ URL 问题章节已重写");
+  }
+
+  // 配套示例代码（v7）：教程正文之外生成可运行的 example-code/ 文件夹
+  let exampleCount = 0;
+  if (!noExampleCode) {
+    console.log("\n  📦 正在生成配套示例代码（example-code/）...");
+    const res = await generateExampleCode({
+      config, outputDir, projectSummary,
+      chapterFiles: await readChapterFiles(outputDir, outline),
+      reproduction,
+    });
+    exampleCount = res.count;
+    if (res.count > 0) console.log(`  ✓ 已生成 ${res.count} 个示例文件 → ${join(outputDir, "example-code")}`);
+    else console.log("  ⚠ 示例代码生成失败或为空（教程仍完整）");
   }
 
   // 输出：index + 报告 + 机器可读指标 + 成本
